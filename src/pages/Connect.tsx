@@ -2,10 +2,9 @@ import { Helmet } from "react-helmet-async";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
 import { Plug } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import { useNavigate } from "react-router-dom";
 
 const Connect = () => {
   const [shop, setShop] = useState("");
@@ -13,7 +12,7 @@ const Connect = () => {
   const [backendUrl, setBackendUrl] = useState(() =>
     typeof window !== "undefined" ? localStorage.getItem("adlign_backend_url") || "" : ""
   );
-  const navigate = useNavigate();
+  
 
   const saveBackendUrl = () => {
     const url = backendUrl.trim();
@@ -34,24 +33,12 @@ const Connect = () => {
   };
 
   const checkStatus = async (silent = true) => {
-    const base = backendUrl.trim().replace(/\/+$/, "");
-    if (!base) return false;
-    try {
-      const res = await fetch(`${base}/api/saas/connect-shopify/status`, {
-        credentials: "include"
-      });
-      if (!res.ok) throw new Error("status");
-      const data = await res.json().catch(() => ({} as any));
-      const isConnected = !!data?.connected;
-      setConnected(isConnected);
-      if (!silent) {
-        toast(isConnected ? "Boutique connectée." : "Boutique non connectée.");
-      }
-      return isConnected;
-    } catch {
-      if (!silent) toast("Impossible de vérifier le statut.");
-      return false;
+    const isConnected = typeof window !== "undefined" && localStorage.getItem("adlign_shop_connected") === "1";
+    setConnected(isConnected);
+    if (!silent) {
+      toast(isConnected ? "Boutique connectée." : "Pas de boutique connectée.");
     }
+    return isConnected;
   };
 
   const handleConnect = async () => {
@@ -81,6 +68,10 @@ const Connect = () => {
       if (w) w.opener = null; // Mitigation reverse‑tabnabbing
 
       setConnected(true);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("adlign_shop_connected", "1");
+        localStorage.setItem("adlign_shop_domain", shop);
+      }
       toast("Flux de connexion démarré dans un nouvel onglet.");
     } catch (err: any) {
       // Fallback direct à l’endpoint OAuth si l’API SaaS n’est pas disponible ou si CORS bloque
@@ -89,6 +80,10 @@ const Connect = () => {
         const w = window.open(url, "_blank", "noopener,noreferrer");
         if (w) w.opener = null;
         setConnected(true);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("adlign_shop_connected", "1");
+          localStorage.setItem("adlign_shop_domain", shop);
+        }
         toast("Flux de connexion démarré (fallback) dans un nouvel onglet.");
       } catch {
         toast(err?.message || "Erreur lors de la connexion Shopify");
@@ -98,11 +93,12 @@ const Connect = () => {
 
   useEffect(() => {
     checkStatus(true);
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("adlign_shop_domain") || "";
+      if (saved) setShop(saved);
+    }
   }, [backendUrl]);
 
-  useEffect(() => {
-    if (connected) navigate("/app");
-  }, [connected, navigate]);
 
   return (
     <div className="space-y-6">
@@ -114,11 +110,13 @@ const Connect = () => {
 
       <div>
         <div className="text-sm text-muted-foreground mb-1">Statut</div>
-        {connected ? (
-          <Badge>Connecté</Badge>
-        ) : (
-          <Badge variant="secondary">Non connecté</Badge>
-        )}
+        <div className="flex items-center gap-2">
+          <span
+            className={`h-2.5 w-2.5 rounded-full ${connected ? 'bg-[hsl(var(--success))]' : 'bg-destructive'}`}
+            aria-hidden="true"
+          />
+          <span className="text-sm">{connected ? 'Connecté' : 'Pas de boutique connectée'}</span>
+        </div>
       </div>
 
       <div className="max-w-xl space-y-3">
@@ -141,10 +139,7 @@ const Connect = () => {
           value={shop}
           onChange={(e) => setShop(e.target.value)}
         />
-        <div className="flex gap-2">
-          <Button onClick={handleConnect}><Plug className="mr-2" /> Connecter Shopify</Button>
-          <Button variant="outline" onClick={() => checkStatus(false)}>Vérifier le statut</Button>
-        </div>
+        <Button onClick={handleConnect}><Plug className="mr-2" /> Connecter Shopify</Button>
       </div>
     </div>
   );
