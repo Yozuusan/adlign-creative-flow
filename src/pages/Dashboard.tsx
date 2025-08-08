@@ -3,8 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { BarChart3, Sparkles, Plug, Layers } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const Dashboard = () => {
+  const [connected, setConnected] = useState(false);
+  const [shopDomain, setShopDomain] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setConnected(localStorage.getItem("adlign_shop_connected") === "1");
+      setShopDomain(localStorage.getItem("adlign_shop_domain") || "");
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
       <Helmet>
@@ -13,23 +24,6 @@ const Dashboard = () => {
         <link rel="canonical" href="/app" />
       </Helmet>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: "Views", value: "12,340" },
-          { label: "Clicks", value: "3,129" },
-          { label: "Add‑to‑Cart", value: "1,024" },
-          { label: "Conversion", value: "3.2%" },
-        ].map((m) => (
-          <Card key={m.label}>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-muted-foreground">{m.label}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold">{m.value}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="md:col-span-2">
@@ -56,11 +50,25 @@ const Dashboard = () => {
             <CardTitle>Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2 text-sm">
-              <li>Shopify connection: Not connected</li>
-              <li>Pages created: 0</li>
-              <li>Active experiments: 0</li>
-            </ul>
+            <div className="flex items-center gap-3">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${connected ? 'bg-[hsl(var(--success))]' : 'bg-destructive'}`}
+                aria-hidden="true"
+              />
+              <div className="text-sm">
+                <div className="font-medium">{connected ? 'Connecté' : 'Pas de boutique connectée'}</div>
+                {connected && shopDomain && (
+                  <div className="text-muted-foreground">{shopDomain}</div>
+                )}
+              </div>
+            </div>
+            {!connected && (
+              <div className="mt-4">
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/app/connect"><Plug className="mr-2" /> Connecter maintenant</Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
