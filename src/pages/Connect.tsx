@@ -1,10 +1,11 @@
 import { Helmet } from "react-helmet-async";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plug } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { useNavigate } from "react-router-dom";
 
 const Connect = () => {
   const [shop, setShop] = useState("");
@@ -12,6 +13,7 @@ const Connect = () => {
   const [backendUrl, setBackendUrl] = useState(() =>
     typeof window !== "undefined" ? localStorage.getItem("adlign_backend_url") || "" : ""
   );
+  const navigate = useNavigate();
 
   const saveBackendUrl = () => {
     const url = backendUrl.trim();
@@ -28,6 +30,27 @@ const Connect = () => {
       toast("URL backend enregistrée.");
     } catch {
       toast("URL invalide. Exemple: https://api.votredomaine.com");
+    }
+  };
+
+  const checkStatus = async (silent = true) => {
+    const base = backendUrl.trim().replace(/\/+$/, "");
+    if (!base) return false;
+    try {
+      const res = await fetch(`${base}/api/saas/connect-shopify/status`, {
+        credentials: "include"
+      });
+      if (!res.ok) throw new Error("status");
+      const data = await res.json().catch(() => ({} as any));
+      const isConnected = !!data?.connected;
+      setConnected(isConnected);
+      if (!silent) {
+        toast(isConnected ? "Boutique connectée." : "Boutique non connectée.");
+      }
+      return isConnected;
+    } catch {
+      if (!silent) toast("Impossible de vérifier le statut.");
+      return false;
     }
   };
 
@@ -73,6 +96,14 @@ const Connect = () => {
     }
   };
 
+  useEffect(() => {
+    checkStatus(true);
+  }, [backendUrl]);
+
+  useEffect(() => {
+    if (connected) navigate("/app");
+  }, [connected, navigate]);
+
   return (
     <div className="space-y-6">
       <Helmet>
@@ -110,7 +141,10 @@ const Connect = () => {
           value={shop}
           onChange={(e) => setShop(e.target.value)}
         />
-        <Button onClick={handleConnect}><Plug className="mr-2" /> Connecter Shopify</Button>
+        <div className="flex gap-2">
+          <Button onClick={handleConnect}><Plug className="mr-2" /> Connecter Shopify</Button>
+          <Button variant="outline" onClick={() => checkStatus(false)}>Vérifier le statut</Button>
+        </div>
       </div>
     </div>
   );
