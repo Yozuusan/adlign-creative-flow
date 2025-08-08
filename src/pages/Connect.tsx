@@ -31,7 +31,7 @@ const Connect = () => {
     }
   };
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!shop) {
       toast("Entrez votre domaine (ex: myshop.myshopify.com)");
       return;
@@ -41,13 +41,36 @@ const Connect = () => {
       return;
     }
     const base = backendUrl.replace(/\/+$/, "");
-    const url = `${base}/auth?shop=${encodeURIComponent(shop)}`;
 
-    const w = window.open(url, "_blank", "noopener,noreferrer");
-    if (w) w.opener = null; // Mitigation reverse‑tabnabbing
+    try {
+      const res = await fetch(`${base}/api/saas/connect-shopify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ shop_domain: shop })
+      });
+      const data = await res.json().catch(() => ({} as any));
+      if (!res.ok || !data?.oauth_url) {
+        throw new Error(data?.error || "Impossible de générer l’URL OAuth");
+      }
 
-    setConnected(true);
-    toast("Flux de connexion démarré dans un nouvel onglet.");
+      const w = window.open(data.oauth_url, "_blank", "noopener,noreferrer");
+      if (w) w.opener = null; // Mitigation reverse‑tabnabbing
+
+      setConnected(true);
+      toast("Flux de connexion démarré dans un nouvel onglet.");
+    } catch (err: any) {
+      // Fallback direct à l’endpoint OAuth si l’API SaaS n’est pas disponible ou si CORS bloque
+      try {
+        const url = `${base}/auth?shop=${encodeURIComponent(shop)}`;
+        const w = window.open(url, "_blank", "noopener,noreferrer");
+        if (w) w.opener = null;
+        setConnected(true);
+        toast("Flux de connexion démarré (fallback) dans un nouvel onglet.");
+      } catch {
+        toast(err?.message || "Erreur lors de la connexion Shopify");
+      }
+    }
   };
 
   return (
