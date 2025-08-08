@@ -1,14 +1,24 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Helmet } from "react-helmet-async";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <main>
+      <Helmet>
+        <title>Adlign — AI‑Aligned Shopify Landing Variants</title>
+        <meta name="description" content="Connect your Shopify store, generate aligned product‑page variants from your ad creatives, and deploy in one click." />
+        <link rel="canonical" href="/" />
+      </Helmet>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-2xl px-4">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Turn ad creatives into high‑converting product pages</h1>
+          <p className="text-lg text-muted-foreground mb-6">Adlign analyzes your theme mapping and auto‑generates on‑brand variants for headlines, images, and CTAs. Preview, deploy, and track performance.</p>
+          <a href="/auth"><Button variant="hero">Get started</Button></a>
+        </div>
       </div>
-    </div>
+    </main>
   );
 };
 
 export default Index;
+
