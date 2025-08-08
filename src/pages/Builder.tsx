@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
+import DynamicMapper from "@/components/builder/DynamicMapper";
 
 // Mock mapping
 const defaultMapping = {
@@ -126,6 +127,9 @@ const Builder = () => {
         <meta name="description" content="Generate and approve variants, compose landing pages." />
         <link rel="canonical" href="/app/builder" />
       </Helmet>
+
+      {/* Dynamic mapping using Claude AI */}
+      <DynamicMapper />
 
       <Card>
         <CardHeader>

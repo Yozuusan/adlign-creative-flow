@@ -1,1 +1,4 @@
 project_id = "hyglnwkdthdewhqeqqss"
+
+[functions.claude-generate]
+verify_jwt = false
