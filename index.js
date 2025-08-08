@@ -542,11 +542,11 @@ app.post('/create-adlign-metaobject-type', express.json(), async (req, res) => {
     metaobjectDefinitionCreate(
       definition: {
         name: "Adlign Landing Page"
-        type: "adlign_landing_page"
-        access: { admin: MERCHANT_READ_WRITE, storefront: PUBLIC_READ }
+        type: "page"
+                         access: { storefront: PUBLIC_READ }
         fieldDefinitions: [
-          # MÉTADONNÉES DE LA LANDING
-          { name: "Handle Unique", key: "handle", type: "single_line_text_field", required: true, description: "Identifiant unique (ex: landing-promo-noel-2024)" }
+                               # MÉTADONNÉES DE LA LANDING
+                     { name: "Handle Unique", key: "landing_handle", type: "single_line_text_field", required: true, description: "Identifiant unique (ex: landing-promo-noel-2024)" }
           { name: "Nom de Campagne", key: "campaign_name", type: "single_line_text_field", required: false, description: "Nom de la campagne marketing" }
           { name: "ID Mapping Thème", key: "mapping_id", type: "single_line_text_field", required: true, description: "ID du mapping généré par l'IA" }
           { name: "Domaine Boutique", key: "shop_domain", type: "single_line_text_field", required: true, description: "Domaine de la boutique Shopify" }
@@ -3276,7 +3276,326 @@ app.get('/api/saas/analytics', async (req, res) => {
   }
 });
 
-// 10. Test complet du workflow SaaS
+// 10. Duplication de page produit avec metaobjects
+app.post('/api/saas/duplicate-product-page', express.json(), async (req, res) => {
+  const { shop_domain, product_id, landing_handle, mapping_id } = req.body;
+  
+  if (!shop_domain || !product_id || !landing_handle || !mapping_id) {
+    return res.status(400).json({
+      success: false,
+      error: 'shop_domain, product_id, landing_handle et mapping_id requis'
+    });
+  }
+
+  try {
+    // 1. Vérifier que le shop est connecté
+    const tokensPath = path.join(__dirname, 'shop_tokens.json');
+    let shopTokens = {};
+    
+    if (fs.existsSync(tokensPath)) {
+      shopTokens = JSON.parse(fs.readFileSync(tokensPath));
+    }
+
+    const accessToken = shopTokens[shop_domain];
+    if (!accessToken) {
+      return res.status(401).json({
+        success: false,
+        error: 'Boutique non connectée. Connectez d\'abord la boutique Shopify.'
+      });
+    }
+
+    // 2. Récupérer le mapping
+    const mapping = getMapping(mapping_id);
+    if (!mapping) {
+      return res.status(404).json({
+        success: false,
+        error: `Mapping "${mapping_id}" non trouvé`
+      });
+    }
+
+    // 3. Récupérer la landing page
+    const landingsPath = path.join(__dirname, 'local_landings.json');
+    let landing = null;
+    
+    if (fs.existsSync(landingsPath)) {
+      const allLandings = JSON.parse(fs.readFileSync(landingsPath));
+      landing = allLandings[shop_domain]?.[landing_handle];
+    }
+
+    if (!landing) {
+      return res.status(404).json({
+        success: false,
+        error: `Landing page "${landing_handle}" non trouvée`
+      });
+    }
+
+    // 4. Récupérer le produit original
+    const productResponse = await axios.get(
+      `https://${shop_domain}/admin/api/2024-07/products/${product_id}.json`,
+      {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+        },
+      }
+    );
+
+    const product = productResponse.data.product;
+
+    // 5. Créer les metaobjects selon le mapping (version simplifiée)
+    const metaobjectFields = [];
+    const mappingData = mapping.mapping;
+    const landingData = landing;
+
+    // Pour l'instant, créons seulement les champs de base qui existent dans notre définition
+    const basicFields = [
+      {
+        key: "custom_title",
+        value: landingData.custom_title || product.title
+      },
+      {
+        key: "custom_description", 
+        value: landingData.custom_description || product.body_html
+      },
+      {
+        key: "custom_price_text",
+        value: landingData.custom_price_text || `$${product.variants[0].price}`
+      },
+      {
+        key: "custom_cta_text",
+        value: landingData.custom_cta_text || 'Add to Cart'
+      },
+      {
+        key: "custom_vendor",
+        value: landingData.custom_vendor || product.vendor
+      },
+      {
+        key: "is_active",
+        value: "true"
+      }
+    ];
+
+    metaobjectFields.push(...basicFields);
+
+        // 6. Créer les métadonnées du produit au lieu des metaobjects
+    const metadata = {
+      metafields: [
+        {
+          namespace: "adlign",
+          key: "landing_handle",
+          value: landing_handle,
+          type: "single_line_text_field"
+        },
+        {
+          namespace: "adlign",
+          key: "mapping_id",
+          value: mapping_id,
+          type: "single_line_text_field"
+        },
+        {
+          namespace: "adlign",
+          key: "campaign_name",
+          value: landingData.campaign_name || "Campaign",
+          type: "single_line_text_field"
+        },
+        ...metaobjectFields.map(field => ({
+          namespace: "adlign",
+          key: field.key,
+          value: field.value,
+          type: "single_line_text_field"
+        }))
+      ]
+    };
+
+    // 7. Créer les métadonnées via l'API Shopify
+    console.log('📦 Données métadonnées à créer:', JSON.stringify(metadata, null, 2));
+    
+    // Créer chaque métadonnée individuellement
+    const createdMetafields = [];
+    for (const metafield of metadata.metafields) {
+      const metafieldResponse = await axios.post(
+        `https://${shop_domain}/admin/api/2024-07/products/${product_id}/metafields.json`,
+        { metafield },
+        {
+          headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      createdMetafields.push(metafieldResponse.data.metafield);
+    }
+
+    // 8. Générer l'URL de la page dupliquée
+    const duplicatedPageUrl = `https://${shop_domain}/products/${product.handle}?landing=${landing_handle}`;
+
+    res.json({
+      success: true,
+      message: `Page produit dupliquée avec métadonnées pour "${landing_handle}"`,
+      data: {
+        product_id: product_id,
+        product_handle: product.handle,
+        landing_handle: landing_handle,
+        mapping_id: mapping_id,
+        metafields_created: createdMetafields.length,
+        duplicated_page_url: duplicatedPageUrl,
+        metafields: createdMetafields.map(mf => ({ key: mf.key, value: mf.value })),
+        mapping_elements: Object.keys(mappingData).length
+      }
+    });
+
+  } catch (error) {
+    console.error('Erreur duplication page produit:', error.response?.data || error.message);
+    console.error('📋 Détails complets de l\'erreur:', JSON.stringify(error.response?.data, null, 2));
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la duplication de la page produit',
+      details: error.response?.data || error.message
+    });
+  }
+});
+
+// 11. Récupérer un mapping spécifique
+app.get('/api/saas/mapping/:mapping_id', async (req, res) => {
+  const { mapping_id } = req.params;
+  
+  try {
+    const mapping = getMapping(mapping_id);
+    if (!mapping) {
+      return res.status(404).json({
+        success: false,
+        error: `Mapping "${mapping_id}" non trouvé`
+      });
+    }
+
+    res.json({
+      success: true,
+      mapping: mapping.mapping,
+      metadata: {
+        shop_domain: mapping.shop_domain,
+        product_url: mapping.product_url,
+        created_at: mapping.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Erreur récupération mapping:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la récupération du mapping',
+      details: error.message
+    });
+  }
+});
+
+// 12. Récupérer les métadonnées d'un produit
+app.post('/api/saas/product-metafields', express.json(), async (req, res) => {
+  const { shop_domain, product_id } = req.body;
+  
+  if (!shop_domain || !product_id) {
+    return res.status(400).json({
+      success: false,
+      error: 'shop_domain et product_id requis'
+    });
+  }
+
+  try {
+    const tokensPath = path.join(__dirname, 'shop_tokens.json');
+    let shopTokens = {};
+    
+    if (fs.existsSync(tokensPath)) {
+      shopTokens = JSON.parse(fs.readFileSync(tokensPath));
+    }
+
+    const accessToken = shopTokens[shop_domain];
+    if (!accessToken) {
+      return res.status(401).json({
+        success: false,
+        error: 'Boutique non connectée'
+      });
+    }
+
+    // Récupérer les métadonnées du produit
+    const metafieldsResponse = await axios.get(
+      `https://${shop_domain}/admin/api/2024-07/products/${product_id}/metafields.json?namespace=adlign`,
+      {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+        },
+      }
+    );
+
+    res.json({
+      success: true,
+      metafields: metafieldsResponse.data.metafields || []
+    });
+
+  } catch (error) {
+    console.error('Erreur récupération métadonnées produit:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la récupération des métadonnées',
+      details: error.response?.data || error.message
+    });
+  }
+});
+
+// 13. Test des métadonnées
+app.get('/api/saas/test-metafields/:shop_domain', async (req, res) => {
+  const { shop_domain } = req.params;
+  
+  try {
+    const tokensPath = path.join(__dirname, 'shop_tokens.json');
+    let shopTokens = {};
+    
+    if (fs.existsSync(tokensPath)) {
+      shopTokens = JSON.parse(fs.readFileSync(tokensPath));
+    }
+
+    const accessToken = shopTokens[shop_domain];
+    if (!accessToken) {
+      return res.status(401).json({
+        success: false,
+        error: 'Boutique non connectée'
+      });
+    }
+
+    // Test 1: Vérifier les métadonnées existantes
+    const metafieldsResponse = await axios.get(
+      `https://${shop_domain}/admin/api/2024-07/metafields.json`,
+      {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+        },
+      }
+    );
+
+    // Test 2: Vérifier les métadonnées d'un produit spécifique
+    const productMetafieldsResponse = await axios.get(
+      `https://${shop_domain}/admin/api/2024-07/products/15096939610438/metafields.json`,
+      {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+        },
+      }
+    );
+
+    res.json({
+      success: true,
+      metafields: metafieldsResponse.data,
+      product_metafields: productMetafieldsResponse.data
+    });
+
+  } catch (error) {
+    console.error('Erreur test métadonnées:', error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors du test des métadonnées',
+      details: error.response?.data || error.message
+    });
+  }
+});
+
+// 12. Test complet du workflow SaaS
 app.post('/api/saas/test-workflow', express.json(), async (req, res) => {
   const { shop_domain, landing_handle } = req.body;
   

@@ -1,0 +1,72 @@
+{
+  "name": "Adlign",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Configuration Adlign"
+    },
+    {
+      "type": "text",
+      "id": "adlign_backend_url",
+      "label": "URL du Backend Adlign",
+      "default": "https://votre-backend.com",
+      "info": "URL de votre serveur backend Adlign"
+    },
+    {
+      "type": "checkbox",
+      "id": "adlign_debug",
+      "label": "Mode Debug",
+      "default": false,
+      "info": "Afficher les logs de debug dans la console"
+    },
+    {
+      "type": "range",
+      "id": "adlign_animation_duration",
+      "label": "Durée d'animation (ms)",
+      "min": 100,
+      "max": 1000,
+      "step": 50,
+      "default": 300,
+      "info": "Durée des animations de remplacement de contenu"
+    },
+    {
+      "type": "checkbox",
+      "id": "adlign_enable_analytics",
+      "label": "Activer les Analytics",
+      "default": true,
+      "info": "Suivre les performances des campagnes Adlign"
+    },
+    {
+      "type": "select",
+      "id": "adlign_indicator_position",
+      "label": "Position de l'indicateur",
+      "options": [
+        {
+          "value": "top-right",
+          "label": "Haut droite"
+        },
+        {
+          "value": "top-left",
+          "label": "Haut gauche"
+        },
+        {
+          "value": "bottom-right",
+          "label": "Bas droite"
+        },
+        {
+          "value": "bottom-left",
+          "label": "Bas gauche"
+        }
+      ],
+      "default": "top-right",
+      "info": "Position de l'indicateur 'Adlign Active'"
+    },
+    {
+      "type": "color",
+      "id": "adlign_indicator_color",
+      "label": "Couleur de l'indicateur",
+      "default": "#4CAF50",
+      "info": "Couleur de l'indicateur de succès"
+    }
+  ]
+}

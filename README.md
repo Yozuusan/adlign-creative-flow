@@ -78,15 +78,30 @@ L'admin Adlign contrôle chaque élément d'une landing via une API (textes, ima
 - 🔄 **API CRUD metaobjects** - Création/édition/suppression des landing pages
 - 🔄 **Interface de test** - Validation du remplacement d'éléments en live
 
-### **Phase 2 : Interface Admin (Court terme)**
-- 📋 **Dashboard de gestion** - Création/édition des landing pages
-- 🎨 **Éditeur visuel** - Modification en temps réel des éléments mappés
-- 📊 **Gestion campagnes** - Organisation par campagnes marketing
+### **Phase 2 : Personnalisation Avancée (Court terme)**
+- 🎨 **Injection de styles personnalisés** - CSS/JS dynamique
+- 📊 **Analytics et A/B testing** - Mesure d'impact automatique
+- 🛒 **Expérience d'achat personnalisée** - Panier intelligent
+- 👥 **Segmentation client automatique** - Tags et comportements
 
-### **Phase 3 : Optimisation & Scale (Moyen terme)**
-- ⚡ **Performance** - Cache intelligent, optimisation requêtes
-- 🧪 **A/B Testing** - Comparaison de versions, métriques de conversion
-- 🔄 **Auto-sync** - Mise à jour automatique des mappings lors de changements de thème
+### **Phase 3 : Automatisation Marketing (Moyen terme)**
+- 🎯 **Campagnes générées par IA** - Création automatique
+- 📈 **Optimisation continue** - Performance et conversion
+- 🤖 **Prédiction comportement client** - IA prédictive
+- 📊 **Insights prédictifs** - Recommandations automatiques
+
+### **Phase 4 : Intelligence Artificielle Avancée (Long terme)**
+- 🧠 **Optimisation automatique** - Campagnes auto-optimisées
+- 📱 **Extensions et widgets** - Personnalisation avancée
+- 🔗 **URLs et redirections intelligentes** - SEO dynamique
+- 🎯 **Promotions automatiques** - Discounts contextuels
+
+### **Phase 5 : Écosystème Complet (Très long terme)**
+- 🌐 **Intégrations tierces** - Google Analytics, Facebook, etc.
+- 📈 **Reporting avancé** - Dashboards prédictifs
+- 🤖 **Chatbot personnalisé** - Support client IA
+- 📱 **Application mobile** - Gestion mobile
+- 🌍 **Support multi-langues** - Internationalisation
 
 ---
 
