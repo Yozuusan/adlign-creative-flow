@@ -113,4 +113,20 @@ All colors MUST be HSL.
   .shadow-glow {
     box-shadow: var(--shadow-glow);
   }
+  /* ChatGPT-style ambient background using semantic tokens */
+  .bg-chatgpt {
+    background:
+      radial-gradient(600px 600px at 0% 0%, hsl(var(--primary) / 0.15), transparent 60%),
+      radial-gradient(600px 600px at 100% 0%, hsl(var(--accent) / 0.12), transparent 60%),
+      radial-gradient(800px 800px at 100% 100%, hsl(var(--primary) / 0.10), transparent 60%),
+      radial-gradient(800px 800px at 0% 100%, hsl(var(--accent) / 0.10), transparent 60%),
+      linear-gradient(180deg, hsl(var(--background)), hsl(var(--background)));
+  }
+  /* Reusable glass panel utility */
+  .glass {
+    background-color: hsl(var(--card) / 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border) / 0.6);
+  }
 }
