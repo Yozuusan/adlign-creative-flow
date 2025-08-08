@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label";
 import { generateDynamicMapping, DynamicElement } from "@/hooks/useClaudeGenerate";
 import { toast } from "@/components/ui/sonner";
 
-interface DynamicMapperProps { onChange?: (els: DynamicElement[]) => void }
-export default function DynamicMapper({ onChange }: DynamicMapperProps) {
+interface DynamicMapperProps { onChange?: (els: DynamicElement[]) => void; onProductUrlChange?: (url: string) => void }
+export default function DynamicMapper({ onChange, onProductUrlChange }: DynamicMapperProps) {
   const [productUrl, setProductUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,7 @@ export default function DynamicMapper({ onChange }: DynamicMapperProps) {
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="productUrl">URL de la page produit</Label>
-            <Input id="productUrl" placeholder="https://votre-boutique.com/products/slug" value={productUrl} onChange={(e)=>setProductUrl(e.target.value)} />
+            <Input id="productUrl" placeholder="https://votre-boutique.com/products/slug" value={productUrl} onChange={(e)=>{ const v = e.target.value; setProductUrl(v); onProductUrlChange?.(v); }} />
           </div>
           <div className="space-y-2">
             <Label>Créative (optionnel)</Label>

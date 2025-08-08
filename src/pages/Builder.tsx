@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import DynamicMapper from "@/components/builder/DynamicMapper";
 import type { DynamicElement } from "@/hooks/useClaudeGenerate";
+import { supabase } from "@/integrations/supabase/client";
 
 // Mock mapping
 const defaultMapping = {
@@ -32,7 +33,7 @@ const Builder = () => {
   });
   const [pages, setPages] = useState<Page[]>([]);
   const [dynamicElements, setDynamicElements] = useState<DynamicElement[]>([]);
-
+  const [productUrl, setProductUrl] = useState("");
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const list = e.target.files ? Array.from(e.target.files) : [];
     setFiles(list);
@@ -79,20 +80,29 @@ const Builder = () => {
     toast("Page created");
   };
 
-  const createPageFromDynamic = () => {
+  const createPageFromDynamic = async () => {
     const kv: Record<string, string> = {};
     dynamicElements.forEach((el, idx) => {
       const key = el.key || `el-${idx + 1}`;
       const val = el.enabled ? (el.ai || "") : (el.original || "");
       if (val) kv[key] = val;
     });
-    const page: Page = {
-      id: `p${pages.length + 1}`,
-      name: `Dynamic Landing ${pages.length + 1}`,
-      variants: kv,
-    };
-    setPages((p) => [page, ...p]);
-    toast("Page créée depuis le mapping dynamique");
+
+    if (!productUrl || !productUrl.trim()) {
+      toast("Veuillez renseigner l'URL produit dans le bloc 'Mapping dynamique'");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke("shopify-create-landing", {
+        body: { product_url: productUrl, language: "fr", mapping: kv },
+      });
+      if (error) throw new Error(error.message || "Edge function error");
+      const url = data?.page?.url as string | undefined;
+      toast(url ? `Page Shopify créée: ${url}` : "Page Shopify créée");
+    } catch (e: any) {
+      toast(`Erreur Shopify: ${e.message || "échec de création"}`);
+    }
   };
 
   const section = (key: keyof typeof variants, label: string) => (
@@ -147,7 +157,7 @@ const Builder = () => {
       </Helmet>
 
       {/* Dynamic mapping using Claude AI */}
-      <DynamicMapper onChange={setDynamicElements} />
+      <DynamicMapper onChange={setDynamicElements} onProductUrlChange={setProductUrl} />
 
       <Card>
         <CardHeader>
@@ -176,7 +186,7 @@ const Builder = () => {
         <CardContent className="space-y-3">
           <Button disabled={!canCreate} onClick={createPage}>Create page with first variants</Button>
           <Button variant="secondary" className="mt-2" onClick={createPageFromDynamic}
-            disabled={!dynamicElements.some(el => (((el.enabled ? el.ai : el.original) || "").trim().length > 0))}
+            disabled={productUrl.trim().length === 0 || !dynamicElements.some(el => (((el.enabled ? el.ai : el.original) || "").trim().length > 0))}
           >Créer une page depuis le mapping</Button>
           {pages.length>0 && (
             <div className="space-y-2">
