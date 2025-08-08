@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { generateDynamicMapping, DynamicElement } from "@/hooks/useClaudeGenerate";
 import { toast } from "@/components/ui/sonner";
 
-export default function DynamicMapper() {
+interface DynamicMapperProps { onChange?: (els: DynamicElement[]) => void }
+export default function DynamicMapper({ onChange }: DynamicMapperProps) {
   const [productUrl, setProductUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,6 +24,7 @@ export default function DynamicMapper() {
     try {
       const res = await generateDynamicMapping({ productUrl, creativeFile: file, language: "fr" });
       setElements(res);
+      onChange?.(res);
       toast("Proposition IA générée");
     } catch (e: any) {
       toast(`Erreur: ${e.message || "échec génération"}`);
@@ -65,14 +67,14 @@ export default function DynamicMapper() {
                   <div className="flex items-center gap-2">
                     <Label htmlFor={`sw-${idx}`}>Utiliser la version IA</Label>
                     <Switch id={`sw-${idx}`} checked={el.enabled} onCheckedChange={(val)=>{
-                      setElements((prev)=> prev.map((x,i)=> i===idx ? { ...x, enabled: val } : x));
+                      setElements((prev)=>{ const next = prev.map((x,i)=> i===idx ? { ...x, enabled: val } : x); onChange?.(next); return next; });
                     }} />
                   </div>
                 </div>
                 {el.enabled && (
                   <Textarea value={el.ai} onChange={(e)=>{
                     const v = e.target.value;
-                    setElements((prev)=> prev.map((x,i)=> i===idx ? { ...x, ai: v } : x));
+                    setElements((prev)=>{ const next = prev.map((x,i)=> i===idx ? { ...x, ai: v } : x); onChange?.(next); return next; });
                   }} />
                 )}
               </div>
@@ -81,7 +83,7 @@ export default function DynamicMapper() {
             <div className="flex gap-2">
               <Button variant="secondary" onClick={()=>{
                 const output = {
-                  elements: elements.map(({ key, ai, enabled }) => ({ key, value: ai, enabled })),
+                  elements: elements.map(({ key, ai, original, enabled }) => ({ key, value: enabled ? ai : original, enabled })),
                 };
                 navigator.clipboard.writeText(JSON.stringify(output));
                 toast("Mapping copié dans le presse‑papiers");

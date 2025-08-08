@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
 import DynamicMapper from "@/components/builder/DynamicMapper";
+import type { DynamicElement } from "@/hooks/useClaudeGenerate";
 
 // Mock mapping
 const defaultMapping = {
@@ -30,6 +31,7 @@ const Builder = () => {
     cta: [],
   });
   const [pages, setPages] = useState<Page[]>([]);
+  const [dynamicElements, setDynamicElements] = useState<DynamicElement[]>([]);
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const list = e.target.files ? Array.from(e.target.files) : [];
@@ -75,6 +77,22 @@ const Builder = () => {
     };
     setPages((p) => [page, ...p]);
     toast("Page created");
+  };
+
+  const createPageFromDynamic = () => {
+    const kv: Record<string, string> = {};
+    dynamicElements.forEach((el, idx) => {
+      const key = el.key || `el-${idx + 1}`;
+      const val = el.enabled ? (el.ai || "") : (el.original || "");
+      if (val) kv[key] = val;
+    });
+    const page: Page = {
+      id: `p${pages.length + 1}`,
+      name: `Dynamic Landing ${pages.length + 1}`,
+      variants: kv,
+    };
+    setPages((p) => [page, ...p]);
+    toast("Page créée depuis le mapping dynamique");
   };
 
   const section = (key: keyof typeof variants, label: string) => (
@@ -129,7 +147,7 @@ const Builder = () => {
       </Helmet>
 
       {/* Dynamic mapping using Claude AI */}
-      <DynamicMapper />
+      <DynamicMapper onChange={setDynamicElements} />
 
       <Card>
         <CardHeader>
@@ -157,6 +175,9 @@ const Builder = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           <Button disabled={!canCreate} onClick={createPage}>Create page with first variants</Button>
+          <Button variant="secondary" className="mt-2" onClick={createPageFromDynamic}
+            disabled={!dynamicElements.some(el => (((el.enabled ? el.ai : el.original) || "").trim().length > 0))}
+          >Créer une page depuis le mapping</Button>
           {pages.length>0 && (
             <div className="space-y-2">
               {pages.map((p)=> (
