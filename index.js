@@ -9,6 +9,89 @@ const cors = require('cors');
 const Anthropic = require('@anthropic-ai/sdk');
 
 const app = express();        // <--- cette ligne AVANT app.use()
+
+// Stockage sécurisé des states OAuth (en production, utiliser Redis)
+const stateStore = new Map();
+
+// Rate limiting simple (en production, utiliser Redis ou un middleware dédié)
+const rateLimitStore = new Map();
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX_REQUESTS = 100; // 100 requêtes par fenêtre
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const windowStart = now - RATE_LIMIT_WINDOW;
+  
+  if (!rateLimitStore.has(ip)) {
+    rateLimitStore.set(ip, []);
+  }
+  
+  const requests = rateLimitStore.get(ip);
+  const validRequests = requests.filter(timestamp => timestamp > windowStart);
+  
+  if (validRequests.length >= RATE_LIMIT_MAX_REQUESTS) {
+    return false;
+  }
+  
+  validRequests.push(now);
+  rateLimitStore.set(ip, validRequests);
+  return true;
+}
+
+// Middleware de rate limiting
+app.use((req, res, next) => {
+  const ip = req.ip || req.connection.remoteAddress;
+  
+  if (!checkRateLimit(ip)) {
+    return res.status(429).json({
+      success: false,
+      error: 'Rate limit exceeded. Please try again later.'
+    });
+  }
+  
+  next();
+});
+
+// Fonctions utilitaires de sécurité
+const crypto = require('crypto');
+
+function encryptToken(token) {
+  const algorithm = 'aes-256-cbc';
+  const key = crypto.scryptSync(process.env.ENCRYPTION_KEY || 'default-key-change-in-prod', 'salt', 32);
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipher(algorithm, key);
+  let encrypted = cipher.update(token, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return { encrypted, iv: iv.toString('hex') };
+}
+
+function decryptToken(encrypted, iv) {
+  const algorithm = 'aes-256-cbc';
+  const key = crypto.scryptSync(process.env.ENCRYPTION_KEY || 'default-key-change-in-prod', 'salt', 32);
+  const decipher = crypto.createDecipher(algorithm, key);
+  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
+
+// Sanitization des inputs
+function sanitizeInput(input) {
+  if (typeof input !== 'string') return input;
+  return input
+    .replace(/[<>]/g, '') // Supprimer les balises HTML
+    .replace(/javascript:/gi, '') // Supprimer les protocoles dangereux
+    .trim();
+}
+
+// Sanitization des logs
+function sanitizeLog(message) {
+  if (typeof message !== 'string') return '[Object]';
+  return message
+    .replace(/password|token|secret|key/gi, '[REDACTED]')
+    .replace(/[<>]/g, '')
+    .substring(0, 1000); // Limiter la longueur
+}
+
 app.use(cors());
 app.use(cookieParser());
 
@@ -33,17 +116,43 @@ const {
   SHOPIFY_APP_URL,
 } = process.env;
 
-// 1. Lancement du flow OAuth
+// 1. Lancement du flow OAuth sécurisé
 app.get('/auth', (req, res) => {
   const shop = req.query.shop;
-  if (!shop) return res.send('Paramètre "shop" manquant');
+  if (!shop) return res.status(400).send('Paramètre "shop" manquant');
+  
+  // Validation du domaine Shopify
+  if (!shop.match(/^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/)) {
+    return res.status(400).send('Domaine Shopify invalide');
+  }
+  
+  // Génération d'un state unique et sécurisé
+  const crypto = require('crypto');
+  const state = crypto.randomBytes(32).toString('hex');
+  
+  // Stockage temporaire du state (en production, utiliser Redis)
+  const stateStore = new Map();
+  stateStore.set(state, {
+    shop: shop,
+    timestamp: Date.now(),
+    ip: req.ip
+  });
+  
+  // Nettoyage des states expirés (plus de 10 minutes)
+  const now = Date.now();
+  for (const [key, value] of stateStore.entries()) {
+    if (now - value.timestamp > 600000) { // 10 minutes
+      stateStore.delete(key);
+    }
+  }
+  
   const redirectUri = `${SHOPIFY_APP_URL}/auth/callback`;
   const installUrl =
     `https://${shop}/admin/oauth/authorize` +
     `?client_id=${SHOPIFY_API_KEY}` +
     `&scope=${SHOPIFY_SCOPES}` +
     `&redirect_uri=${redirectUri}` +
-    `&state=randomstring123` + // (Pour démo, à sécuriser si prod)
+    `&state=${state}` +
     `&grant_options[]=per-user`;
 
   res.redirect(installUrl);
@@ -2725,10 +2834,28 @@ function generateTestScript(mapping, testContent) {
 // 🚀 ENDPOINTS SAAS POUR LOVABLE
 // ========================================
 
-// Configuration CORS pour le frontend Lovable
+// Configuration CORS sécurisée
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://lovable.dev',
+  'https://adlign-creative-flow.vercel.app'
+];
+
 app.use('/api/saas', cors({
-  origin: ['http://localhost:5173', 'https://lovable.dev', 'https://adlign-creative-flow.vercel.app'],
-  credentials: true
+  origin: function (origin, callback) {
+    // Autoriser les requêtes sans origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS: Origin non autorisée'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 86400 // 24h
 }));
 
 // 1. Connexion Shopify pour le SaaS

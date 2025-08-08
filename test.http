@@ -1,0 +1,24 @@
+POST http://localhost:3000/create-adlign-landing
+Content-Type: application/json
+
+{
+  "shop_domain": "adlign.myshopify.com",
+  "landing_data": {
+    "handle": "landing-test-meta-aout-2025",
+    "mapping_id": "mapping_1754624612898_7ic7yy3j2",
+    "shop_domain": "adlign.myshopify.com",
+    "campaign_name": "Campagne test nouvelles metas",
+    "custom_title": "🔥 Offre spéciale Horizon 2025",
+    "custom_description": "Découvrez notre nouveau produit avec un design exclusif et des fonctionnalités améliorées. Quantités limitées – profitez-en maintenant !",
+    "custom_price_text": "Seulement 19,99€ aujourd'hui",
+    "custom_cta_text": "J'en profite maintenant",
+    "custom_badges": "EXCLUSIF,DERNIERS JOURS,OFFRE LIMITÉE",
+    "custom_main_image": "https://via.placeholder.com/800x800.png?text=Image+Principale+Adlign",
+    "custom_urgency_text": "Plus que 5 exemplaires en stock !",
+    "custom_shipping_text": "Livraison express gratuite",
+    "custom_discount_code": "PROMO25",
+    "ab_test_group": "A",
+    "target_audience": "Clients fidèles",
+    "custom_css": ".adlign-badge { background: red; color: white; padding: 5px; margin-right: 5px; border-radius: 4px; font-weight: bold; }"
+  }
+}
