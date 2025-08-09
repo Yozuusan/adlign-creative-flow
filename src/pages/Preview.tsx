@@ -12,7 +12,6 @@ const Preview = () => {
   const previewUrl = useMemo(() => {
     if (!url) return "";
     const u = new URL(url);
-    u.searchParams.set("view", "adlign");
     u.searchParams.set("adlign_variant", variant);
     return u.toString();
   }, [url, variant]);

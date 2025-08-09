@@ -35,11 +35,12 @@ const Builder = () => {
   const [dynamicElements, setDynamicElements] = useState<DynamicElement[]>([]);
   const [productUrl, setProductUrl] = useState("");
   const [variantKey, setVariantKey] = useState("p1");
+  const [metafield, setMetafield] = useState<any | null>(null);
+  const [metafieldLoading, setMetafieldLoading] = useState(false);
   const previewUrl = useMemo(() => {
     if (!productUrl) return "";
     try {
       const u = new URL(productUrl);
-      u.searchParams.set("view", "adlign");
       u.searchParams.set("adlign_variant", variantKey);
       return u.toString();
     } catch {
@@ -172,12 +173,49 @@ const Builder = () => {
       }
 
       const u = new URL(productUrl);
-      u.searchParams.set("view", "adlign");
       u.searchParams.set("adlign_variant", variantKey);
       toast(`Mapping enregistré. Preview: ${u.toString()}`);
     } catch (e: any) {
       const msg = e?.message || e?.error || "échec d'enregistrement";
       toast(`Erreur Shopify: ${msg}`);
+    }
+  };
+
+  const verifyMetafield = async () => {
+    if (!productUrl || !productUrl.trim()) {
+      toast("Veuillez renseigner l'URL produit dans le bloc 'Mapping dynamique'");
+      return;
+    }
+    setMetafield(null);
+    setMetafieldLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("shopify-get-mapping", {
+        body: { product_url: productUrl },
+      });
+      if (error) {
+        let details = (error as any)?.message || (error as any)?.error;
+        const ctx = (error as any)?.context;
+        if (ctx && typeof ctx.json === "function") {
+          try {
+            const body = await ctx.json();
+            details = body?.error || body?.message || JSON.stringify(body);
+          } catch {
+            try {
+              const txt = await ctx.text?.();
+              if (txt) details = txt;
+            } catch {}
+          }
+        }
+        throw new Error(details || "Edge function error");
+      }
+      const settings = (data as any)?.settings ?? null;
+      setMetafield(settings ?? null);
+      toast(settings ? "Métachamp trouvé" : "Métachamp absent ou vide");
+    } catch (e: any) {
+      const msg = e?.message || e?.error || "échec de vérification";
+      toast(`Erreur: ${msg}`);
+    } finally {
+      setMetafieldLoading(false);
     }
   };
 
@@ -269,7 +307,7 @@ const Builder = () => {
           <CardTitle>Variante dynamique produit (Shopify)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid gap-2 md:grid-cols-4 items-center">
+          <div className="grid gap-2 md:grid-cols-5 items-center">
             <Input placeholder="Identifiant de variante (ex: p1)" value={variantKey} onChange={(e)=>setVariantKey(e.target.value)} />
             <Button onClick={saveDynamicToShopify}
               disabled={productUrl.trim().length === 0 || !dynamicElements.some(el => (((el.enabled ? el.ai : el.original) || "").trim().length > 0))}
@@ -277,12 +315,21 @@ const Builder = () => {
             <Button variant="secondary" onClick={() => { if (previewUrl) window.open(previewUrl, "_blank", "noopener"); }} disabled={!previewUrl}>
               Ouvrir l’aperçu
             </Button>
+            <Button variant="outline" onClick={verifyMetafield} disabled={metafieldLoading || !productUrl.trim()}>
+              Vérifier le métachamp
+            </Button>
             {productUrl && (
               <div className="text-sm text-muted-foreground truncate">
                 Aperçu: {previewUrl || "—"}
               </div>
             )}
           </div>
+          {metafield !== null && (
+            <div className="space-y-2">
+              <Badge variant="secondary">Métachamp trouvé</Badge>
+              <pre className="text-xs rounded-md border p-3 overflow-auto max-h-64">{JSON.stringify(metafield, null, 2)}</pre>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

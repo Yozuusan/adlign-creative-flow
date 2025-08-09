@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.shopify-upsert-mapping]
 verify_jwt = false
+
+[functions.shopify-get-mapping]
+verify_jwt = false
