@@ -1,9 +1,9 @@
 {%- comment -%}
 Section Adlign - Applique le mapping dynamiquement
-Utilise le metafield adlign.settings pour lire le mapping et remplacer le contenu
+Utilise le metafield adlign_data.settings pour lire le mapping et remplacer le contenu
 {%- endcomment -%}
 
-{%- assign adlign_settings = product.metafields.adlign.settings -%}
+{%- assign adlign_settings = product.metafields.adlign_data.settings -%}
 
 {%- if adlign_settings and adlign_settings.is_active -%}
   <style>

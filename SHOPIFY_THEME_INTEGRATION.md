@@ -60,7 +60,7 @@ SaaS Adlign → API Backend → Metafield settings → Template adlign → Secti
 ### **2. Backend Crée les Metafields**
 ```json
 {
-  "adlign.settings": {
+  "adlign_data.settings": {
     "landing_handle": "black-friday-2024",
     "mapping": {
       "product_title": ".product__title",
@@ -165,7 +165,7 @@ https://boutique.myshopify.com/products/produit-test?template=adlign
 ## 🚨 **Troubleshooting**
 
 ### **Problème : Aucun changement visible**
-1. Vérifier le metafield `adlign.settings`
+1. Vérifier le metafield `adlign_data.settings`
 2. Contrôler l'assignation du template
 3. Examiner les logs console
 4. Tester les sélecteurs CSS

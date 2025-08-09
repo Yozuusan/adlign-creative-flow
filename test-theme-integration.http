@@ -58,7 +58,7 @@ Content-Type: application/json
 # Doit afficher la page avec le contenu personnalisé
 
 ### Points de vérification:
-# - Metafield adlign.settings contient mapping + content
+# - Metafield adlign_data.settings contient mapping + content
 # - Template product.adlign.json est assigné au produit
 # - Section adlign-mapping-section.liquid applique les changements
 # - DOM mis à jour avec le contenu personnalisé

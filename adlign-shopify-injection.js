@@ -8,7 +8,7 @@
 
   // Configuration
   const ADLIGN_CONFIG = {
-    namespace: 'adlign',
+    namespace: 'adlign_data',
     debug: true,
     animationDuration: 300,
     fallbackSelectors: {

@@ -3387,35 +3387,35 @@ app.post('/api/saas/duplicate-product-page', express.json(), async (req, res) =>
       created_at: new Date().toISOString()
     };
 
-    // Créer les métadonnées du produit avec settings global
+    // Créer les métadonnées du produit avec settings global (nouveau namespace: adlign_data)
     const metadata = {
       metafields: [
         {
-          namespace: "adlign",
+          namespace: "adlign_data",
           key: "settings",
           value: JSON.stringify(adlignSettings),
           type: "json"
         },
         {
-          namespace: "adlign",
+          namespace: "adlign_data",
           key: "landing_handle",
           value: landing_handle,
           type: "single_line_text_field"
         },
         {
-          namespace: "adlign",
+          namespace: "adlign_data",
           key: "mapping_id",
           value: mapping_id,
           type: "single_line_text_field"
         },
         {
-          namespace: "adlign",
+          namespace: "adlign_data",
           key: "campaign_name",
           value: landingData.campaign_name || "Campaign",
           type: "single_line_text_field"
         },
         ...metaobjectFields.map(field => ({
-          namespace: "adlign",
+          namespace: "adlign_data",
           key: field.key,
           value: field.value,
           type: "single_line_text_field"
