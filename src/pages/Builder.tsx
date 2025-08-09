@@ -98,7 +98,19 @@ try {
     body: { product_url: productUrl, language: "fr", mapping: kv },
   });
   if (error) {
-    const details = (error as any)?.context ?? (error as any)?.error ?? (error as any)?.message;
+    let details = (error as any)?.message || (error as any)?.error;
+    const ctx = (error as any)?.context;
+    if (ctx && typeof ctx.json === "function") {
+      try {
+        const body = await ctx.json();
+        details = body?.error || body?.message || JSON.stringify(body);
+      } catch {
+        try {
+          const txt = await ctx.text?.();
+          if (txt) details = txt;
+        } catch {}
+      }
+    }
     throw new Error(details || "Edge function error");
   }
   const url = data?.page?.url as string | undefined;
@@ -163,18 +175,6 @@ try {
       {/* Dynamic mapping using Claude AI */}
       <DynamicMapper onChange={setDynamicElements} onProductUrlChange={setProductUrl} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Creative input</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <input type="file" multiple accept="image/*,video/*" onChange={handleFiles} />
-          {files.length>0 && (
-            <div className="text-sm text-muted-foreground">{files.length} file(s) selected</div>
-          )}
-          <Button onClick={generate}>Auto-generate variants</Button>
-        </CardContent>
-      </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         {section("headline", "Headline")}

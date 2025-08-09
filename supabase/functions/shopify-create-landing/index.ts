@@ -102,10 +102,10 @@ serve(async (req) => {
 
     // 1) Get product by handle
     const dataProd = await graphql(
-      `query productByHandle($handle: String!){ product(handle:$handle){ id title handle onlineStoreUrl } }`,
+      `query productByHandle($handle: String!){ productByHandle(handle:$handle){ id title handle onlineStoreUrl } }`,
       { handle }
     );
-    const product = dataProd?.product;
+    const product = dataProd?.productByHandle;
     if (!product?.id) {
       return new Response(JSON.stringify({ error: "Product not found" }), {
         status: 404,
