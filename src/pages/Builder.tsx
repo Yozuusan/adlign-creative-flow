@@ -93,16 +93,20 @@ const Builder = () => {
       return;
     }
 
-    try {
-      const { data, error } = await supabase.functions.invoke("shopify-create-landing", {
-        body: { product_url: productUrl, language: "fr", mapping: kv },
-      });
-      if (error) throw new Error(error.message || "Edge function error");
-      const url = data?.page?.url as string | undefined;
-      toast(url ? `Page Shopify créée: ${url}` : "Page Shopify créée");
-    } catch (e: any) {
-      toast(`Erreur Shopify: ${e.message || "échec de création"}`);
-    }
+try {
+  const { data, error } = await supabase.functions.invoke("shopify-create-landing", {
+    body: { product_url: productUrl, language: "fr", mapping: kv },
+  });
+  if (error) {
+    const details = (error as any)?.context ?? (error as any)?.error ?? (error as any)?.message;
+    throw new Error(details || "Edge function error");
+  }
+  const url = data?.page?.url as string | undefined;
+  toast(url ? `Page Shopify créée: ${url}` : "Page Shopify créée");
+} catch (e: any) {
+  const msg = e?.message || e?.error || "échec de création";
+  toast(`Erreur Shopify: ${msg}`);
+}
   };
 
   const section = (key: keyof typeof variants, label: string) => (

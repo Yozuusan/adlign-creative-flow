@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 function extractHandle(url: string): string | null {
@@ -178,48 +179,60 @@ serve(async (req) => {
 
     // 4) Create a new Online Store page using the "adlign" template
     const uniqueHandle = `adlign-${product.handle}-${Date.now()}`;
-    const pageRes = await graphql(
-      `mutation createPage($page: PageCreateInput!){
-        pageCreate(page: $page){
-          page { id handle title onlineStoreUrl }
-          userErrors { field message }
-        }
-      }`,
-      {
-        page: {
-          title: `${product.title} • Adlign Landing`,
-          handle: uniqueHandle,
-          bodyHtml: "",
-          templateSuffix: "adlign",
-          published: true,
-        },
-      }
-    );
-    const page = pageRes?.pageCreate?.page;
-    if (!page?.id) throw new Error("Failed to create page");
+const pageRes = await graphql(
+  `mutation createPage($page: PageCreateInput!){
+    pageCreate(page: $page){
+      page { id handle title onlineStoreUrl }
+      userErrors { field message }
+    }
+  }`,
+  {
+    page: {
+      title: `${product.title} • Adlign Landing`,
+      handle: uniqueHandle,
+      bodyHtml: "",
+      templateSuffix: "adlign",
+      published: true,
+    },
+  }
+);
+const pageErrors = pageRes?.pageCreate?.userErrors || [];
+if (pageErrors.length) {
+  throw new Error(
+    "Page create error: " + pageErrors.map((e: any) => e?.message || JSON.stringify(e)).join("; ")
+  );
+}
+const page = pageRes?.pageCreate?.page;
+if (!page?.id) throw new Error("Failed to create page");
 
     // 5) Attach metaobject reference or JSON fallback
     if (metaobjectId) {
       try {
-        await graphql(
-          `mutation setMeta($metafields: [MetafieldsSetInput!]!){
-            metafieldsSet(metafields: $metafields){
-              metafields { id key namespace }
-              userErrors { field message }
-            }
-          }`,
-          {
-            metafields: [
-              {
-                ownerId: page.id,
-                namespace: "adlign",
-                key: "mapping_ref",
-                type: "metaobject_reference",
-                value: metaobjectId,
-              },
-            ],
-          }
-        );
+const metaSetRes = await graphql(
+  `mutation setMeta($metafields: [MetafieldsSetInput!]!){
+    metafieldsSet(metafields: $metafields){
+      metafields { id key namespace }
+      userErrors { field message }
+    }
+  }`,
+  {
+    metafields: [
+      {
+        ownerId: page.id,
+        namespace: "adlign",
+        key: "mapping_ref",
+        type: "metaobject_reference",
+        value: metaobjectId,
+      },
+    ],
+  }
+);
+const metaSetErrors = metaSetRes?.metafieldsSet?.userErrors || [];
+if (metaSetErrors.length) {
+  throw new Error(
+    "Metafields set error: " + metaSetErrors.map((e: any) => e?.message || JSON.stringify(e)).join("; ")
+  );
+}
       } catch (e) {
         console.warn("Failed to set metaobject reference, falling back to JSON", e);
         await setJsonMetafield(graphql, page.id, mapping);
