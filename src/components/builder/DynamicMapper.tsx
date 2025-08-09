@@ -91,7 +91,7 @@ export default function DynamicMapper({ onChange, onProductUrlChange }: DynamicM
           </div>
         </div>
         <div>
-          <Button onClick={onGenerate} disabled={loading}>{loading ? "Analyse en cours…" : "Analyser & générer"}</Button>
+          <Button onClick={onGenerate} disabled={loading || !productUrl.trim()}>{loading ? "Analyse en cours…" : "Analyser & générer"}</Button>
         </div>
 
         {elements.length > 0 && (

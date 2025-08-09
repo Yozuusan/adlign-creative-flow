@@ -220,6 +220,61 @@ const Builder = () => {
     }
   };
 
+  // Diagnostics state and helpers
+  const [diagLoading, setDiagLoading] = useState(false);
+  const [diagResult, setDiagResult] = useState<string>("");
+
+  const runDiag = async (type: 'claude' | 'get' | 'upsert' | 'create') => {
+    if (!productUrl.trim()) { toast("Veuillez renseigner l'URL produit"); return; }
+    setDiagLoading(true);
+    setDiagResult("");
+    try {
+      if (type === 'claude') {
+        const { data, error } = await supabase.functions.invoke("claude-generate", {
+          body: { product_url: productUrl, language: "fr" },
+        });
+        if (error) throw error;
+        setDiagResult(JSON.stringify(data, null, 2));
+      } else if (type === 'get') {
+        const { data, error } = await supabase.functions.invoke("shopify-get-mapping", {
+          body: { product_url: productUrl },
+        });
+        if (error) throw error;
+        setDiagResult(JSON.stringify(data, null, 2));
+      } else if (type === 'upsert') {
+        const { data, error } = await supabase.functions.invoke("shopify-upsert-mapping", {
+          body: { product_url: productUrl, language: "fr", variant: variantKey || "diag", mapping: { headline: "Diag test" } },
+        });
+        if (error) throw error;
+        setDiagResult(JSON.stringify(data ?? { ok: true }, null, 2));
+      } else if (type === 'create') {
+        const { data, error } = await supabase.functions.invoke("shopify-create-landing", {
+          body: { product_url: productUrl, language: "fr", mapping: { headline: "Diag landing" } },
+        });
+        if (error) throw error;
+        setDiagResult(JSON.stringify(data, null, 2));
+      }
+    } catch (e: any) {
+      let details = e?.message || e?.error;
+      const ctx = (e as any)?.context;
+      if (ctx && typeof ctx.json === "function") {
+        try {
+          const body = await ctx.json();
+          details = body?.error || body?.message || JSON.stringify(body);
+        } catch {
+          try {
+            const txt = await ctx.text?.();
+            if (txt) details = txt;
+          } catch {}
+        }
+      }
+      setDiagResult(String(details || "Erreur inconnue"));
+      toast(`Erreur: ${details || "Unknown"}`);
+    } finally {
+      setDiagLoading(false);
+    }
+  };
+
   const section = (key: keyof typeof variants, label: string) => (
     <Card key={key}>
       <CardHeader>
@@ -332,6 +387,23 @@ const Builder = () => {
               <Badge variant="secondary">Métachamp trouvé</Badge>
               <pre className="text-xs rounded-md border p-3 overflow-auto max-h-64">{JSON.stringify(metafield, null, 2)}</pre>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Diagnostics</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-2 md:grid-cols-4">
+            <Button onClick={()=>runDiag('claude')} disabled={diagLoading || !productUrl.trim()}>Tester Claude</Button>
+            <Button variant="secondary" onClick={()=>runDiag('get')} disabled={diagLoading || !productUrl.trim()}>Get Mapping</Button>
+            <Button variant="outline" onClick={()=>runDiag('upsert')} disabled={diagLoading || !productUrl.trim()}>Upsert Mapping</Button>
+            <Button variant="ghost" onClick={()=>runDiag('create')} disabled={diagLoading || !productUrl.trim()}>Create Landing</Button>
+          </div>
+          {diagResult && (
+            <pre className="text-xs rounded-md border p-3 overflow-auto max-h-64">{diagResult}</pre>
           )}
         </CardContent>
       </Card>

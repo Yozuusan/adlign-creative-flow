@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 function extractHandle(url: string): string | null {
@@ -12,7 +13,7 @@ function extractHandle(url: string): string | null {
     const parts = u.pathname.split("/").filter(Boolean);
     const idx = parts.findIndex((p) => p === "products");
     if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
-    return parts[parts.length - 1] || null;
+    return null;
   } catch {
     return null;
   }
