@@ -35,6 +35,17 @@ const Builder = () => {
   const [dynamicElements, setDynamicElements] = useState<DynamicElement[]>([]);
   const [productUrl, setProductUrl] = useState("");
   const [variantKey, setVariantKey] = useState("p1");
+  const previewUrl = useMemo(() => {
+    if (!productUrl) return "";
+    try {
+      const u = new URL(productUrl);
+      u.searchParams.set("view", "adlign");
+      u.searchParams.set("adlign_variant", variantKey);
+      return u.toString();
+    } catch {
+      return "";
+    }
+  }, [productUrl, variantKey]);
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const list = e.target.files ? Array.from(e.target.files) : [];
     setFiles(list);
@@ -258,14 +269,17 @@ const Builder = () => {
           <CardTitle>Variante dynamique produit (Shopify)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid gap-2 md:grid-cols-3 items-center">
+          <div className="grid gap-2 md:grid-cols-4 items-center">
             <Input placeholder="Identifiant de variante (ex: p1)" value={variantKey} onChange={(e)=>setVariantKey(e.target.value)} />
             <Button onClick={saveDynamicToShopify}
               disabled={productUrl.trim().length === 0 || !dynamicElements.some(el => (((el.enabled ? el.ai : el.original) || "").trim().length > 0))}
             >Publier le mapping</Button>
+            <Button variant="secondary" onClick={() => { if (previewUrl) window.open(previewUrl, "_blank", "noopener"); }} disabled={!previewUrl}>
+              Ouvrir l’aperçu
+            </Button>
             {productUrl && (
               <div className="text-sm text-muted-foreground truncate">
-                Aperçu: {(() => { const u = new URL(productUrl); u.searchParams.set("view","adlign"); u.searchParams.set("adlign_variant", variantKey); return u.toString(); })()}
+                Aperçu: {previewUrl || "—"}
               </div>
             )}
           </div>
