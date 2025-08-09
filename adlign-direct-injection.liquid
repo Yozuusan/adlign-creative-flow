@@ -1,0 +1,182 @@
+<!-- 
+===========================================
+🚀 ADLIGN - INJECTION DIRECTE DANS LA PAGE
+===========================================
+Script qui s'injecte directement dans la page produit
+Sans passer par les templates - injection DOM directe
+-->
+
+<script>
+(function() {
+  // Vérifier qu'on est bien sur une page produit
+  if (!window.location.pathname.includes('/products/')) {
+    return;
+  }
+  
+  console.log('🚀 [ADLIGN DIRECT] === INJECTION DIRECTE ===');
+  
+  // Garde-fou anti-double exécution
+  if (window.AdlignDirectActive) {
+    console.log('🔄 [ADLIGN DIRECT] Déjà actif - skip');
+    return;
+  }
+  window.AdlignDirectActive = true;
+  
+  // Supprimer toutes les anciennes variables
+  console.log('🧹 [ADLIGN DIRECT] Nettoyage variables...');
+  delete window.AdlignActivated;
+  delete window.AdlignAPIActive;
+  delete window.AdlignHardcodedActive;
+  delete window.AdlignIntegrationActive;
+  console.log('✅ [ADLIGN DIRECT] Variables nettoyées');
+  
+  // Détection paramètres URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const adlignVariant = urlParams.get('adlign_variant');
+  
+  if (!adlignVariant) {
+    console.log('🔍 [ADLIGN DIRECT] Aucun paramètre adlign_variant - mode normal');
+    return;
+  }
+  
+  console.log(`🎯 [ADLIGN DIRECT] Paramètre détecté: ${adlignVariant}`);
+  
+  // Configuration des campagnes
+  const campaigns = {
+    'test': {
+      campaign_name: 'Test Campaign - Injection Directe',
+      changes: {
+        title: '🎯 INJECTION DIRECTE RÉUSSIE !',
+        cta: '🎯 INJECTION DIRECTE',
+        description: '<p><strong>✅ Injection directe fonctionnelle !</strong> Plus d\'ancien script.</p>'
+      }
+    },
+    'promo': {
+      campaign_name: 'Promotion Spéciale',
+      changes: {
+        title: '🔥 OFFRE SPÉCIALE LIMITÉE - 50% DE RÉDUCTION',
+        cta: '🔥 PROFITER DE L\'OFFRE',
+        description: '<p><strong>🔥 Promotion exceptionnelle !</strong> Offre valable jusqu\'à épuisement des stocks. Livraison gratuite incluse.</p>'
+      }
+    }
+  };
+  
+  // Sélecteurs ultra-simples (SANS le prix pour l'instant)
+  const selectors = {
+    title: ['h1'],
+    cta: ['button[type="submit"]', '[name="add"]'],
+    description: ['.product__description:not(.price)', '.rte:not(.price)', '.product-description']
+  };
+  
+  // Application immédiate
+  const campaign = campaigns[adlignVariant];
+  if (!campaign) {
+    console.log(`❌ [ADLIGN DIRECT] Campaign '${adlignVariant}' non trouvée`);
+    return;
+  }
+  
+  console.log(`🎨 [ADLIGN DIRECT] Application: ${campaign.campaign_name}`);
+  
+  let modificationsAppliquees = 0;
+  
+  Object.entries(selectors).forEach(([type, selectorList]) => {
+    if (!campaign.changes[type]) return;
+    
+    for (const selector of selectorList) {
+      const elements = document.querySelectorAll(selector);
+      if (elements.length > 0) {
+        elements.forEach(element => {
+          // Sécurité : ne pas modifier si c'est un élément de prix
+          if (element.closest('.price') || 
+              element.classList.contains('price') || 
+              element.classList.contains('money') ||
+              element.textContent.includes('€') || 
+              element.textContent.includes('$')) {
+            console.log(`⚠️ [ADLIGN DIRECT] ${type} - Élément prix ignoré:`, element);
+            return;
+          }
+          
+          // Marquer
+          element.setAttribute('data-adlign-direct', 'true');
+          element.setAttribute('data-adlign-variant', adlignVariant);
+          
+          // Modifier selon le type
+          if (type === 'description') {
+            element.innerHTML = campaign.changes[type];
+          } else {
+            // Pour title et cta, on garde le texte simple
+            element.textContent = campaign.changes[type];
+          }
+          
+          // Animation
+          element.style.background = 'rgba(147, 51, 234, 0.2)';
+          element.style.transition = 'all 0.5s ease';
+          setTimeout(() => element.style.background = '', 2000);
+          
+          modificationsAppliquees++;
+          console.log(`✨ [ADLIGN DIRECT] ${type} modifié avec ${selector}`);
+        });
+        break; // Premier sélecteur qui marche
+      }
+    }
+  });
+  
+  if (modificationsAppliquees > 0) {
+    // Notification
+    const notification = document.createElement('div');
+    notification.innerHTML = `
+      <strong>🎯 ${campaign.campaign_name}</strong><br>
+      <small>${modificationsAppliquees} éléments modifiés</small><br>
+      <small>✅ Injection directe active</small>
+    `;
+    notification.style.cssText = `
+      position: fixed; top: 20px; right: 20px; 
+      background: linear-gradient(135deg, #8b5cf6, #7c3aed); 
+      color: white; padding: 15px 20px; border-radius: 12px; 
+      font-weight: 600; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border: 2px solid rgba(255,255,255,0.2);
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (document.body.contains(notification)) {
+            document.body.removeChild(notification);
+          }
+        }, 300);
+      }
+    }, 5000);
+    
+    console.log(`🎉 [ADLIGN DIRECT] Succès ! ${modificationsAppliquees} modifications`);
+  }
+  
+  // Debug global
+  window.AdlignDirectDebug = {
+    variant: adlignVariant,
+    modifications: modificationsAppliquees,
+    active: true
+  };
+  
+  window.debugAdlignDirect = function() {
+    console.log('🔍 [DEBUG DIRECT]');
+    console.log('- Variant:', window.AdlignDirectDebug?.variant);
+    console.log('- Modifications:', window.AdlignDirectDebug?.modifications);
+    console.log('- Éléments marqués:', document.querySelectorAll('[data-adlign-direct="true"]').length);
+    
+    // Test sélecteurs
+    console.log('🎯 Test sélecteurs:');
+    Object.entries(selectors).forEach(([type, selectorArray]) => {
+      console.log(`  ${type}:`);
+      selectorArray.forEach(sel => {
+        const count = document.querySelectorAll(sel).length;
+        console.log(`    ${sel}: ${count} éléments`);
+      });
+    });
+  };
+  
+  console.log('💡 [ADLIGN DIRECT] Tapez debugAdlignDirect() pour débugger');
+  console.log('🎯 [ADLIGN DIRECT] === INJECTION TERMINÉE ===');
+})();
+</script>

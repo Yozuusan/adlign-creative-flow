@@ -1,0 +1,55 @@
+{
+  "success": true,
+  "theme_id": 182285697350,
+  "theme_name": "Horizon",
+  "mapping_id": "mapping_1754727832137_r0p6be548",
+  "generated_at": "2025-01-09T07:50:00Z",
+  "selectors": {
+    "title": [
+      "h1.product__title",
+      ".product-title",
+      "h1",
+      ".product__title h1"
+    ],
+    "price": [
+      "product-price [ref='priceContainer']",
+      ".price__current",
+      ".product-price",
+      ".price-item--regular",
+      ".money",
+      ".price"
+    ],
+    "cta": [
+      "[ref='addToCartButton']",
+      "[name='add']",
+      "button[name='add']",
+      ".product-form__cart-submit",
+      ".btn--add-to-cart",
+      "button[type='submit']"
+    ],
+    "description": [
+      ".product__description",
+      ".product-description",
+      ".rte",
+      "[data-product-description]"
+    ]
+  },
+  "components": {
+    "product_gallery": {
+      "selector": "media-gallery",
+      "description": "Galerie média du produit avec zoom et diaporama"
+    },
+    "variant_selector": {
+      "selector": "variant-picker",
+      "description": "Sélecteur de variantes produit"
+    },
+    "product_inventory": {
+      "selector": "product-inventory",
+      "description": "Affichage du stock produit"
+    },
+    "cart_drawer": {
+      "selector": "cart-drawer-component",
+      "description": "Tiroir latéral du panier"
+    }
+  }
+}

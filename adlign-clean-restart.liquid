@@ -1,0 +1,205 @@
+<!-- 
+===========================================
+🧹 ADLIGN - NETTOYAGE ET REDÉMARRAGE FORCÉ
+===========================================
+Script qui nettoie l'ancien et force le nouveau
+-->
+
+<script>
+console.log('🧹 [ADLIGN CLEAN] === NETTOYAGE FORCÉ ===');
+
+// 1. NETTOYAGE COMPLET DES ANCIENNES VARIABLES
+console.log('🗑️ [ADLIGN CLEAN] Suppression des anciennes variables...');
+delete window.AdlignActivated;
+delete window.AdlignAPIActive;
+delete window.AdlignHardcodedActive;
+delete window.AdlignAPIData;
+delete window.AdlignConfig;
+delete window.debugAdlign;
+delete window.debugAdlignHardcoded;
+
+// 2. VÉRIFICATION DU NETTOYAGE
+console.log('✅ [ADLIGN CLEAN] Variables supprimées');
+console.log('   AdlignActivated:', window.AdlignActivated);
+console.log('   AdlignAPIActive:', window.AdlignAPIActive);
+console.log('   AdlignIntegrationActive:', window.AdlignIntegrationActive);
+
+// 3. GARDE-FOU GLOBAL POUR NOTRE NOUVEAU SCRIPT
+if (window.AdlignIntegrationActive) {
+  console.log('🔄 [ADLIGN CLEAN] Script déjà initialisé - redémarrage...');
+  delete window.AdlignIntegrationActive;
+}
+
+// 4. INITIALISATION PROPRE
+window.AdlignIntegrationActive = true;
+console.log('🚀 [ADLIGN CLEAN] Initialisation du nouveau script...');
+
+// 5. DÉTECTION PARAMÈTRES URL
+const urlParams = new URLSearchParams(window.location.search);
+const adlignVariant = urlParams.get('adlign_variant');
+
+if (!adlignVariant) {
+  console.log('🔍 [ADLIGN CLEAN] Aucun paramètre adlign_variant - mode normal');
+  return;
+}
+
+console.log(`🎯 [ADLIGN CLEAN] Paramètre détecté: ${adlignVariant}`);
+
+// 6. CONFIGURATION DES CAMPAGNES (SIMPLE POUR TEST)
+const campaigns = {
+  'test': {
+    campaign_name: 'Test Campaign - Clean',
+    changes: {
+      title: '🧹 NETTOYAGE RÉUSSI - NOUVEAU SCRIPT ACTIF',
+      price: '99,99€ <span style="color:green;">✅ CLEAN</span>',
+      cta: '🧹 SCRIPT NETTOYÉ',
+      description: '<p><strong>✅ Nouveau script actif !</strong> L\'ancien script a été supprimé.</p>'
+    }
+  }
+};
+
+// 7. SÉLECTEURS SIMPLES POUR TEST IMMÉDIAT
+const simpleSelectors = {
+  title: ['h1', '.product-title', '.product__title'],
+  price: ['.price', '.product-price', '.money'],
+  cta: ['button[type="submit"]', '[name="add"]', '.btn'],
+  description: ['.product__description', '.rte', '.description']
+};
+
+// 8. FONCTION DE TEST IMMÉDIAT
+function testSelectors() {
+  console.log('🎯 [ADLIGN CLEAN] Test des sélecteurs...');
+  
+  Object.entries(simpleSelectors).forEach(([type, selectorList]) => {
+    for (const selector of selectorList) {
+      try {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > 0) {
+          console.log(`✅ [ADLIGN CLEAN] ${type} → ${selector} (${elements.length} éléments)`);
+          return; // Premier sélecteur qui marche
+        }
+      } catch (error) {
+        console.log(`❌ [ADLIGN CLEAN] ${selector} → ERREUR`);
+      }
+    }
+    console.log(`⚠️ [ADLIGN CLEAN] ${type} → Aucun sélecteur trouvé`);
+  });
+}
+
+// 9. APPLICATION IMMÉDIATE DES CHANGEMENTS
+function applyTestChanges() {
+  const campaign = campaigns[adlignVariant];
+  if (!campaign) {
+    console.log(`❌ [ADLIGN CLEAN] Campaign '${adlignVariant}' non trouvée`);
+    return;
+  }
+  
+  console.log(`🎨 [ADLIGN CLEAN] Application des changements pour ${campaign.campaign_name}`);
+  
+  let changementsAppliques = 0;
+  
+  Object.entries(simpleSelectors).forEach(([type, selectorList]) => {
+    if (!campaign.changes[type]) return;
+    
+    for (const selector of selectorList) {
+      try {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > 0) {
+          elements.forEach(element => {
+            // Marquer comme transformé
+            element.setAttribute('data-adlign-clean', 'true');
+            element.setAttribute('data-adlign-variant', adlignVariant);
+            
+            // Appliquer le changement
+            if (type === 'description' || type === 'price') {
+              element.innerHTML = campaign.changes[type];
+            } else {
+              element.textContent = campaign.changes[type];
+            }
+            
+            // Animation verte
+            element.style.background = 'rgba(34, 197, 94, 0.3)';
+            element.style.transition = 'background 0.5s ease';
+            setTimeout(() => element.style.background = '', 3000);
+            
+            changementsAppliques++;
+            console.log(`✨ [ADLIGN CLEAN] ${type} modifié avec ${selector}`);
+          });
+          break; // Premier sélecteur qui marche
+        }
+      } catch (error) {
+        console.log(`❌ [ADLIGN CLEAN] Erreur ${selector}:`, error.message);
+      }
+    }
+  });
+  
+  if (changementsAppliques > 0) {
+    // Notification de succès
+    const notification = document.createElement('div');
+    notification.innerHTML = `
+      <strong>🧹 ${campaign.campaign_name}</strong><br>
+      <small>${changementsAppliques} éléments modifiés</small><br>
+      <small>✅ Ancien script supprimé</small>
+    `;
+    notification.style.cssText = `
+      position: fixed; top: 20px; right: 20px; 
+      background: linear-gradient(135deg, #22c55e, #16a34a); 
+      color: white; padding: 15px 20px; border-radius: 12px; 
+      font-weight: 600; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border: 2px solid rgba(255,255,255,0.2);
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (document.body.contains(notification)) {
+            document.body.removeChild(notification);
+          }
+        }, 300);
+      }
+    }, 5000);
+    
+    console.log(`🎉 [ADLIGN CLEAN] Succès ! ${changementsAppliques} éléments modifiés`);
+  } else {
+    console.log(`⚠️ [ADLIGN CLEAN] Aucune modification appliquée - vérifiez les sélecteurs`);
+  }
+}
+
+// 10. EXÉCUTION IMMÉDIATE
+console.log('⚡ [ADLIGN CLEAN] Début de l\'exécution...');
+testSelectors();
+applyTestChanges();
+
+// 11. VARIABLES DE DEBUG
+window.AdlignCleanDebug = {
+  variant: adlignVariant,
+  active: true,
+  changedElements: document.querySelectorAll('[data-adlign-clean="true"]').length
+};
+
+window.debugAdlignClean = function() {
+  console.log('🔍 [DEBUG CLEAN]');
+  console.log('- Variant:', window.AdlignCleanDebug?.variant);
+  console.log('- Éléments modifiés:', window.AdlignCleanDebug?.changedElements);
+  console.log('- Variables anciennes supprimées:', !window.AdlignActivated);
+  
+  // Test sélecteurs
+  console.log('🎯 Test sélecteurs actuels:');
+  Object.entries(simpleSelectors).forEach(([type, selectors]) => {
+    console.log(`  ${type}:`);
+    selectors.forEach(selector => {
+      try {
+        const count = document.querySelectorAll(selector).length;
+        console.log(`    ${selector}: ${count} éléments`);
+      } catch (error) {
+        console.log(`    ${selector}: ERREUR`);
+      }
+    });
+  });
+};
+
+console.log('💡 [ADLIGN CLEAN] Tapez debugAdlignClean() pour débugger');
+console.log('🎯 [ADLIGN CLEAN] === NETTOYAGE TERMINÉ ===');
+</script>

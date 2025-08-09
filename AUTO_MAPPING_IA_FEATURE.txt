@@ -1,0 +1,331 @@
+====================================
+🤖 FEATURE AUTO-MAPPING IA ADLIGN - DOCUMENTATION COMPLÈTE
+====================================
+
+## 🎯 OBJECTIF DE LA FEATURE
+
+L'auto-mapping IA permet de détecter automatiquement les sélecteurs CSS corrects pour chaque élément modifiable d'une page produit Shopify, en analysant la structure du thème avec l'IA Claude.
+
+**Problème résolu :** 
+- Chaque thème Shopify a des sélecteurs CSS différents (.product-title vs .product__title vs h1.title)
+- Impossible de deviner manuellement les bons sélecteurs pour chaque thème
+- L'IA analyse le code Liquid réel et génère un mapping précis
+
+## 🏗️ ARCHITECTURE TECHNIQUE
+
+### 1. COMPOSANTS PRINCIPAUX
+
+#### A. Analyse du Thème Shopify
+```
+GET /generate-mapping?shop_domain=XXX
+├── Récupération des fichiers Liquid du thème actif
+├── Scan des templates (product.liquid, product.json)
+├── Analyse des sections/snippets inclus
+└── Extraction des patterns HTML/CSS
+```
+
+#### B. Enhancement par IA Claude
+```
+enhanceMappingWithAI()
+├── Envoi du code Liquid à Claude 3.5 Sonnet
+├── Prompt spécialisé pour détection d'éléments Shopify
+├── Génération mapping JSON avec scoring de confiance
+└── Validation et nettoyage des résultats
+```
+
+#### C. Stockage et Récupération
+```
+saveMapping() / getMapping()
+├── Stockage local avec ID unique
+├── Clé: {shop_domain}_{theme_name}_{timestamp}
+├── Cache persistant des mappings générés
+└── API de récupération: GET /mapping/:mappingId
+```
+
+### 2. ENDPOINTS DÉVELOPPÉS
+
+#### `/generate-mapping` (POST)
+**Fonction :** Génération complète d'un mapping pour un thème
+**Paramètres :**
+- shop_domain (requis)
+- access_token (automatique depuis shop_tokens.json)
+
+**Processus :**
+1. Récupération thème actif via Shopify API
+2. Download des fichiers Liquid critiques
+3. Analyse structure HTML/CSS 
+4. Enhancement par Claude AI
+5. Sauvegarde mapping avec ID unique
+
+**Retour :**
+```json
+{
+  "success": true,
+  "mapping_id": "adlign_myshopify_com_dawn_1704657123",
+  "theme_name": "Dawn",
+  "elements_detected": 8,
+  "mapping": {
+    "product_title": {
+      "selector": ".product__title h1",
+      "confidence": 0.95,
+      "fallbacks": ["h1.product-title", ".product-title"]
+    },
+    "product_price": {
+      "selector": ".price__current .money",
+      "confidence": 0.9,
+      "fallbacks": [".product-price", ".price"]
+    },
+    // ... autres éléments
+  }
+}
+```
+
+#### `/generate-mapping-quick` (POST)
+**Fonction :** Version rapide - scan des templates principaux seulement
+**Optimisation :** Pour tests rapides et prototypage
+
+#### `/generate-mapping-complete` (POST) 
+**Fonction :** Scan exhaustif de TOUS les fichiers du thème
+**Usage :** Mapping de production ultra-précis
+
+#### `/mapping/:mappingId` (GET)
+**Fonction :** Récupération d'un mapping existant
+**Retour :** Mapping complet avec métadonnées
+
+#### `/mappings/:shopDomain` (GET)
+**Fonction :** Liste tous les mappings d'un shop
+**Usage :** Historique et gestion des versions
+
+#### `/test-mapping` (POST)
+**Fonction :** Test d'un mapping avec contenu personnalisé
+**Usage :** Validation avant déploiement
+
+#### `/analyze-page` (POST)
+**Fonction :** Analyse directe d'une page HTML avec Claude
+**Usage :** Mapping à partir d'une page capturée
+
+### 3. INTELLIGENCE ARTIFICIELLE - CLAUDE INTEGRATION
+
+#### Configuration
+```javascript
+const anthropic = new Anthropic({
+  apiKey: process.env.CLAUDE_API_KEY,
+});
+```
+
+#### Prompt Spécialisé pour Shopify
+```
+Tu es un expert en analyse de thèmes Shopify. Analyse le contenu réel des fichiers Liquid et génère un mapping précis des éléments modifiables.
+
+ÉLÉMENTS À DÉTECTER:
+1. product_title: Titre principal du produit
+2. product_price: Prix actuel (pas barré/comparé)  
+3. add_to_cart: Bouton d'ajout au panier principal
+4. product_description: Description riche du produit
+5. product_image: Image principale produit
+6. product_gallery: Galerie d'images
+7. variant_selector: Sélecteurs de variantes
+8. product_reviews: Section avis clients
+
+CRITÈRES QUALITÉ:
+- Priorité aux sélecteurs spécifiques vs génériques
+- Éviter header/footer/navigation
+- Cibler éléments dans la zone produit principale
+- Fournir fallbacks si possible
+- Scorer la confiance (0-1)
+
+FORMAT RETOUR: JSON pur sans markdown
+```
+
+#### Modèle Utilisé
+- **Claude 3.5 Sonnet** (claude-3-5-sonnet-20241022)
+- Choisi pour sa précision en analyse de code
+- Excellente compréhension des patterns Shopify
+
+#### Fallback Système
+Si Claude API échoue :
+1. Fallback vers analyse basée sur patterns connus
+2. Sélecteurs Shopify standards (.product__title, .price, etc.)
+3. Mapping générique fonctionnel minimal
+
+## 🔧 FONCTIONS CLÉS DÉVELOPPÉES
+
+### `enhanceMappingWithAI(themeStructure, shopDomain, accessToken)`
+**Rôle :** Cœur de l'intelligence artificielle
+**Entrée :** Structure thème brute + fichiers Liquid
+**Processus :**
+1. Préparation données pour Claude (fichiers + contexte)
+2. Envoi prompt spécialisé à Claude API
+3. Parsing réponse JSON de Claude
+4. Validation et enrichissement
+5. Fusion avec analyse Liquid basique
+
+**Sortie :** Mapping enrichi avec scores de confiance
+
+### `saveMapping(shopDomain, identifier, mapping)`
+**Rôle :** Persistance des mappings générés
+**Stockage :** Fichier JSON local (production: BDD recommandée)
+**ID Format :** `{shopDomain}_{identifier}_{timestamp}`
+
+### `getAllMappings(shopDomain)`
+**Rôle :** Récupération historique des mappings d'un shop
+**Usage :** Versioning et comparaison des mappings
+
+### `generateTestScript(mapping, testContent)`
+**Rôle :** Génération script JS de test pour un mapping
+**Usage :** Validation côté client des sélecteurs
+
+## 📊 EXEMPLES DE MAPPINGS GÉNÉRÉS
+
+### Thème Dawn (défaut Shopify)
+```json
+{
+  "product_title": {
+    "selector": ".product__title h1",
+    "confidence": 0.95,
+    "fallbacks": ["h1.product-title", ".product-title"]
+  },
+  "product_price": {
+    "selector": ".price__current .money",
+    "confidence": 0.9, 
+    "fallbacks": [".product-price", ".price"]
+  },
+  "add_to_cart": {
+    "selector": ".product-form__buttons button[type='submit']",
+    "confidence": 0.9,
+    "fallbacks": ["button[name='add']", ".btn--add-to-cart"]
+  },
+  "product_description": {
+    "selector": ".product__description .rte",
+    "confidence": 0.85,
+    "fallbacks": [".product-description", ".product__text"]
+  }
+}
+```
+
+### Thème Custom Complexe
+```json
+{
+  "product_title": {
+    "selector": ".product-single__title",
+    "confidence": 0.92,
+    "fallbacks": [".product-title", "h1"]
+  },
+  "product_price": {
+    "selector": ".product-single__price .money",
+    "confidence": 0.88,
+    "fallbacks": [".price", ".product-price"]
+  },
+  "add_to_cart": {
+    "selector": ".product-single__cart-submit",
+    "confidence": 0.93,
+    "fallbacks": ["button[type='submit']"]
+  }
+}
+```
+
+## 🔄 WORKFLOW COMPLET D'UTILISATION
+
+### Étape 1 : Génération du Mapping
+```bash
+POST /generate-mapping
+{
+  "shop_domain": "adlign.myshopify.com"
+}
+
+# Retour
+{
+  "mapping_id": "adlign_myshopify_com_dawn_1704657123",
+  "mapping": { ... }
+}
+```
+
+### Étape 2 : Intégration Frontend
+```javascript
+// Au lieu de sélecteurs hardcodés
+const selectors = {
+  title: 'h1',  // ❌ Générique
+  price: '.price'  // ❌ Peut ne pas marcher
+};
+
+// Utiliser le mapping IA
+fetch(`/mapping/${mappingId}`)
+  .then(res => res.json())
+  .then(data => {
+    const mapping = data.mapping;
+    const titleSelector = mapping.product_title.selector;  // ✅ Précis
+    const priceSelector = mapping.product_price.selector;  // ✅ Testé par IA
+  });
+```
+
+### Étape 3 : Application avec Fallbacks
+```javascript
+function findElement(mapping, elementType) {
+  const config = mapping[elementType];
+  
+  // Essayer sélecteur principal
+  let element = document.querySelector(config.selector);
+  
+  // Fallbacks si échec
+  if (!element && config.fallbacks) {
+    for (const fallback of config.fallbacks) {
+      element = document.querySelector(fallback);
+      if (element) break;
+    }
+  }
+  
+  return element;
+}
+```
+
+## 🚀 AVANTAGES DE LA SOLUTION
+
+### ✅ Précision
+- Analyse du code Liquid réel (pas de devinettes)
+- IA spécialisée en patterns Shopify
+- Scoring de confiance pour chaque sélecteur
+
+### ✅ Robustesse  
+- Système de fallbacks automatique
+- Gestion d'erreur avec mapping générique
+- Validation avant sauvegarde
+
+### ✅ Performance
+- Cache des mappings générés
+- Scan rapide vs complet selon besoins
+- Pas de re-analyse à chaque visite
+
+### ✅ Évolutivité
+- Support de nouveaux éléments facilement
+- Amélioration continue des prompts IA
+- Historique et versioning des mappings
+
+## 🎯 ÉTAT ACTUEL VS UTILISATION
+
+### ✅ CE QUI EST DÉVELOPPÉ ET FONCTIONNEL
+- Tous les endpoints d'auto-mapping
+- Intégration Claude AI complète
+- Stockage et récupération des mappings
+- Tests et validation
+
+### ❌ CE QUI MANQUE ACTUELLEMENT
+- **Connexion frontend** : Le script Liquid utilise encore des sélecteurs hardcodés
+- **Workflow automatique** : Pas de génération auto du mapping lors de la première visite
+- **Interface utilisateur** : Pas d'UI pour gérer les mappings
+
+## 🔧 PROCHAINE ÉTAPE CRITIQUE
+
+**CONNECTER L'AUTO-MAPPING AU SCRIPT FRONTEND :**
+
+1. Générer mapping pour le thème actuel :
+   ```bash
+   POST /generate-mapping {"shop_domain": "adlign.myshopify.com"}
+   ```
+
+2. Modifier le script Liquid pour utiliser le mapping au lieu des sélecteurs hardcodés
+
+3. Test et validation sur page produit réelle
+
+**C'est LA solution au problème actuel !** 🎯
+
+====================================

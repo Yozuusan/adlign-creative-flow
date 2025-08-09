@@ -1,6 +1,6 @@
 {
   "sections": {
-    "adlign_mapping": {
+    "adlign_injection": {
       "type": "adlign-mapping-section",
       "settings": {
         "debug": false
@@ -8,6 +8,6 @@
     }
   },
   "order": [
-    "adlign_mapping"
+    "adlign_injection"
   ]
 }
