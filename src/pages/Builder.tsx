@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/sonner";
 import DynamicMapper from "@/components/builder/DynamicMapper";
 import type { DynamicElement } from "@/hooks/useClaudeGenerate";
 import { supabase } from "@/integrations/supabase/client";
+import PageHeader from "@/components/layout/PageHeader";
 
 // Mock mapping
 const defaultMapping = {
@@ -270,10 +271,12 @@ const Builder = () => {
         <link rel="canonical" href="/app/builder" />
       </Helmet>
 
-      {/* Dynamic mapping using Claude AI */}
-      <DynamicMapper onChange={setDynamicElements} onProductUrlChange={setProductUrl} />
+        <PageHeader title="Builder" description="Generate and approve variants, compose landing pages.">
+          <Button variant="secondary" onClick={generate}>Generate</Button>
+        </PageHeader>
 
-
+        {/* Dynamic mapping using Claude AI */}
+        <DynamicMapper onChange={setDynamicElements} onProductUrlChange={setProductUrl} />
       <div className="grid gap-4 md:grid-cols-2">
         {section("headline", "Headline")}
         {section("subhead", "Subhead")}

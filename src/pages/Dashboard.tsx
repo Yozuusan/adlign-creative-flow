@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { BarChart3, Sparkles, Plug, Layers } from "lucide-react";
 import { useEffect, useState } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 
 const Dashboard = () => {
   const [connected, setConnected] = useState(false);
@@ -23,9 +24,9 @@ const Dashboard = () => {
         <meta name="description" content="Overview of your stores, pages, and performance." />
         <link rel="canonical" href="/app" />
       </Helmet>
+        <PageHeader title="Dashboard" description="Overview of your stores, pages, and performance." />
 
-
-      <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Quick start</CardTitle>

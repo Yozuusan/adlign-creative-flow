@@ -34,7 +34,7 @@ export function AppSidebar() {
   const currentPath = location.pathname;
 
   return (
-    <Sidebar className="w-60" collapsible="offcanvas">
+    <Sidebar className="w-60 bg-sidebar border-r" collapsible="offcanvas">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Adlign</SidebarGroupLabel>

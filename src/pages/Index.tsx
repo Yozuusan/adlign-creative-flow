@@ -11,7 +11,7 @@ const Index = () => {
       </Helmet>
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-2xl px-4 glass rounded-2xl border shadow-glow p-8 md:p-10">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Turn ad creatives into high‑converting product pages</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 animate-fade-in"><span className="bg-gradient-primary bg-clip-text text-transparent">Turn ad creatives into high‑converting product pages</span></h1>
           <p className="text-lg text-muted-foreground mb-6">Adlign analyzes your theme mapping and auto‑generates on‑brand variants for headlines, images, and CTAs. Preview, deploy, and track performance.</p>
           <a href="/auth"><Button variant="hero">Get started</Button></a>
         </div>
