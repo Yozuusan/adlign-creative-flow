@@ -6,3 +6,5 @@ verify_jwt = false
 [functions.shopify-create-landing]
 verify_jwt = false
 
+[functions.shopify-upsert-mapping]
+verify_jwt = false

@@ -34,6 +34,7 @@ const Builder = () => {
   const [pages, setPages] = useState<Page[]>([]);
   const [dynamicElements, setDynamicElements] = useState<DynamicElement[]>([]);
   const [productUrl, setProductUrl] = useState("");
+  const [variantKey, setVariantKey] = useState("p1");
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const list = e.target.files ? Array.from(e.target.files) : [];
     setFiles(list);
@@ -93,32 +94,80 @@ const Builder = () => {
       return;
     }
 
-try {
-  const { data, error } = await supabase.functions.invoke("shopify-create-landing", {
-    body: { product_url: productUrl, language: "fr", mapping: kv },
-  });
-  if (error) {
-    let details = (error as any)?.message || (error as any)?.error;
-    const ctx = (error as any)?.context;
-    if (ctx && typeof ctx.json === "function") {
-      try {
-        const body = await ctx.json();
-        details = body?.error || body?.message || JSON.stringify(body);
-      } catch {
-        try {
-          const txt = await ctx.text?.();
-          if (txt) details = txt;
-        } catch {}
+    try {
+      const { data, error } = await supabase.functions.invoke("shopify-create-landing", {
+        body: { product_url: productUrl, language: "fr", mapping: kv },
+      });
+      if (error) {
+        let details = (error as any)?.message || (error as any)?.error;
+        const ctx = (error as any)?.context;
+        if (ctx && typeof ctx.json === "function") {
+          try {
+            const body = await ctx.json();
+            details = body?.error || body?.message || JSON.stringify(body);
+          } catch {
+            try {
+              const txt = await ctx.text?.();
+              if (txt) details = txt;
+            } catch {}
+          }
+        }
+        throw new Error(details || "Edge function error");
       }
+      const url = data?.page?.url as string | undefined;
+      toast(url ? `Page Shopify créée: ${url}` : "Page Shopify créée");
+    } catch (e: any) {
+      const msg = e?.message || e?.error || "échec de création";
+      toast(`Erreur Shopify: ${msg}`);
     }
-    throw new Error(details || "Edge function error");
-  }
-  const url = data?.page?.url as string | undefined;
-  toast(url ? `Page Shopify créée: ${url}` : "Page Shopify créée");
-} catch (e: any) {
-  const msg = e?.message || e?.error || "échec de création";
-  toast(`Erreur Shopify: ${msg}`);
-}
+  };
+
+  const saveDynamicToShopify = async () => {
+    const kv: Record<string, string> = {};
+    dynamicElements.forEach((el, idx) => {
+      const key = el.key || `el-${idx + 1}`;
+      const val = el.enabled ? (el.ai || "") : (el.original || "");
+      if (val) kv[key] = val;
+    });
+
+    if (!productUrl || !productUrl.trim()) {
+      toast("Veuillez renseigner l'URL produit dans le bloc 'Mapping dynamique'");
+      return;
+    }
+    if (!variantKey || !variantKey.trim()) {
+      toast("Veuillez saisir un identifiant de variante (ex: p1)");
+      return;
+    }
+
+    try {
+      const { error } = await supabase.functions.invoke("shopify-upsert-mapping", {
+        body: { product_url: productUrl, language: "fr", variant: variantKey, mapping: kv },
+      });
+      if (error) {
+        let details = (error as any)?.message || (error as any)?.error;
+        const ctx = (error as any)?.context;
+        if (ctx && typeof ctx.json === "function") {
+          try {
+            const body = await ctx.json();
+            details = body?.error || body?.message || JSON.stringify(body);
+          } catch {
+            try {
+              const txt = await ctx.text?.();
+              if (txt) details = txt;
+            } catch {}
+          }
+        }
+        throw new Error(details || "Edge function error");
+      }
+
+      const u = new URL(productUrl);
+      u.searchParams.set("view", "adlign");
+      u.searchParams.set("adlign_variant", variantKey);
+      toast(`Mapping enregistré. Preview: ${u.toString()}`);
+    } catch (e: any) {
+      const msg = e?.message || e?.error || "échec d'enregistrement";
+      toast(`Erreur Shopify: ${msg}`);
+    }
   };
 
   const section = (key: keyof typeof variants, label: string) => (
@@ -201,6 +250,25 @@ try {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Variante dynamique produit (Shopify)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-2 md:grid-cols-3 items-center">
+            <Input placeholder="Identifiant de variante (ex: p1)" value={variantKey} onChange={(e)=>setVariantKey(e.target.value)} />
+            <Button onClick={saveDynamicToShopify}
+              disabled={productUrl.trim().length === 0 || !dynamicElements.some(el => (((el.enabled ? el.ai : el.original) || "").trim().length > 0))}
+            >Publier le mapping</Button>
+            {productUrl && (
+              <div className="text-sm text-muted-foreground truncate">
+                Aperçu: {(() => { const u = new URL(productUrl); u.searchParams.set("view","adlign"); u.searchParams.set("adlign_variant", variantKey); return u.toString(); })()}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
