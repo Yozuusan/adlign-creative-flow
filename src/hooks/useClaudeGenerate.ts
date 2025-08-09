@@ -26,11 +26,13 @@ export async function fileToBase64(file: File): Promise<{ base64: string; mime: 
 export async function generateDynamicMapping(params: {
   productUrl: string;
   creativeFile?: File | null;
+  creativeBase64?: string;
+  creativeMime?: string;
   language?: string;
   brand?: string;
   desiredElements?: string[];
 }): Promise<DynamicElement[]> {
-  const { productUrl, creativeFile, language = "fr", brand, desiredElements } = params;
+  const { productUrl, creativeFile, creativeBase64, creativeMime, language = "fr", brand, desiredElements } = params;
 
   let payload: any = {
     product_url: productUrl,
@@ -44,6 +46,9 @@ export async function generateDynamicMapping(params: {
     const { base64, mime } = await fileToBase64(creativeFile);
     payload.creative_base64 = base64;
     payload.creative_mime = mime;
+  } else if (creativeBase64) {
+    payload.creative_base64 = creativeBase64;
+    payload.creative_mime = creativeMime || "image/png";
   }
 
   const { data, error } = await supabase.functions.invoke("claude-generate", {

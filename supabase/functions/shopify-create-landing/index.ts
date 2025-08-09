@@ -182,7 +182,7 @@ serve(async (req) => {
 const pageRes = await graphql(
   `mutation createPage($page: PageCreateInput!){
     pageCreate(page: $page){
-      page { id handle title onlineStoreUrl }
+      page { id handle title }
       userErrors { field message }
     }
   }`,

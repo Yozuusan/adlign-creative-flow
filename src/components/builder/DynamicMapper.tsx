@@ -1,20 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { generateDynamicMapping, DynamicElement } from "@/hooks/useClaudeGenerate";
+import { generateDynamicMapping, DynamicElement, fileToBase64 } from "@/hooks/useClaudeGenerate";
 import { toast } from "@/components/ui/sonner";
 
 interface DynamicMapperProps { onChange?: (els: DynamicElement[]) => void; onProductUrlChange?: (url: string) => void }
 export default function DynamicMapper({ onChange, onProductUrlChange }: DynamicMapperProps) {
   const [productUrl, setProductUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [cachedCreative, setCachedCreative] = useState<{ base64: string; mime: string; name?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [elements, setElements] = useState<DynamicElement[]>([]);
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("adlign:lastCreative");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.base64 && parsed?.mime) {
+          setCachedCreative({ base64: parsed.base64, mime: parsed.mime, name: parsed.name });
+        }
+      }
+    } catch {}
+  }, []);
   const onGenerate = async () => {
     if (!productUrl) {
       toast("Veuillez indiquer l'URL de la page produit");
@@ -22,7 +34,14 @@ export default function DynamicMapper({ onChange, onProductUrlChange }: DynamicM
     }
     setLoading(true);
     try {
-      const res = await generateDynamicMapping({ productUrl, creativeFile: file, language: "fr" });
+      let res;
+      if (file) {
+        res = await generateDynamicMapping({ productUrl, creativeFile: file, language: "fr" });
+      } else if (cachedCreative) {
+        res = await generateDynamicMapping({ productUrl, creativeBase64: cachedCreative.base64, creativeMime: cachedCreative.mime, language: "fr" });
+      } else {
+        res = await generateDynamicMapping({ productUrl, language: "fr" });
+      }
       setElements(res);
       onChange?.(res);
       toast("Proposition IA générée");
@@ -46,7 +65,29 @@ export default function DynamicMapper({ onChange, onProductUrlChange }: DynamicM
           </div>
           <div className="space-y-2">
             <Label>Créative (optionnel)</Label>
-            <input type="file" accept="image/*" onChange={(e)=>setFile(e.target.files?.[0]||null)} />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const f = e.target.files?.[0] || null;
+                setFile(f);
+                if (f) {
+                  try {
+                    const { base64, mime } = await fileToBase64(f);
+                    const payload = { base64, mime, name: f.name, ts: Date.now() };
+                    localStorage.setItem("adlign:lastCreative", JSON.stringify(payload));
+                    setCachedCreative({ base64, mime, name: f.name });
+                    toast("Créative mémorisée");
+                  } catch {}
+                }
+              }}
+            />
+            {cachedCreative && (
+              <div className="text-xs text-muted-foreground">
+                Dernière créative mémorisée: {cachedCreative.name || "image"} — réutilisée automatiquement
+                <Button variant="link" className="px-1" onClick={() => { localStorage.removeItem("adlign:lastCreative"); setCachedCreative(null); }}>Effacer</Button>
+              </div>
+            )}
           </div>
         </div>
         <div>
