@@ -1,0 +1,65 @@
+### Test Intégration Complète Mapping → Thème Shopify
+
+### 1. Installation des fichiers thème
+POST http://localhost:3000/api/saas/install-theme-files
+Content-Type: application/json
+
+{
+  "shop_domain": "adlign.myshopify.com"
+}
+
+### 2. Duplication d'un produit avec mapping (génère metafield settings + assigne template)
+POST http://localhost:3000/api/saas/duplicate-product-page
+Content-Type: application/json
+
+{
+  "shop_domain": "adlign.myshopify.com",
+  "product_id": "15096939610438",
+  "mapping_id": "mapping_1754625541045_ubaly9sic",
+  "landing_handle": "black-friday-2024",
+  "landingData": {
+    "campaign_name": "Black Friday 2024",
+    "custom_title": "🔥 BLACK FRIDAY -70% - DERNIÈRE CHANCE !",
+    "custom_description": "Ne ratez pas cette offre exceptionnelle ! Seulement 24h restantes pour profiter de cette réduction incroyable.",
+    "custom_price_text": "19,90€ au lieu de 69,90€ (-71%)",
+    "custom_cta_text": "⚡ JE PROFITE DE L'OFFRE",
+    "custom_vendor": "Adlign",
+    "badge_text": "PROMO FLASH",
+    "urgency_text": "Plus que 24h !",
+    "social_proof": "⭐ 4.9/5 - 2,847 avis",
+    "guarantee_text": "✅ Satisfait ou remboursé 30 jours"
+  }
+}
+
+### 3. Vérification des metafields créés
+GET http://localhost:3000/api/saas/test-metafields/adlign.myshopify.com
+
+### 4. Test mapping disponible
+GET http://localhost:3000/api/saas/mapping/mapping_1754625541045_ubaly9sic
+
+### 5. Test récupération metafields produit
+POST http://localhost:3000/api/saas/product-metafields
+Content-Type: application/json
+
+{
+  "shop_domain": "adlign.myshopify.com",
+  "product_id": "15096939610438"
+}
+
+### Expected Results:
+# 1. ✅ Theme files installed successfully
+# 2. ✅ Product metafields created with adlign.settings
+# 3. ✅ Template "adlign" assigned to product  
+# 4. ✅ Mapping data available
+# 5. ✅ Product metafields including settings JSON
+
+### URL à tester dans le navigateur:
+# https://adlign.myshopify.com/products/[product-handle]?template=adlign
+# Doit afficher la page avec le contenu personnalisé
+
+### Points de vérification:
+# - Metafield adlign.settings contient mapping + content
+# - Template product.adlign.json est assigné au produit
+# - Section adlign-mapping-section.liquid applique les changements
+# - DOM mis à jour avec le contenu personnalisé
+# - Indicateur visuel de succès affiché

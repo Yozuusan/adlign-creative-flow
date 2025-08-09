@@ -1,0 +1,361 @@
+{%- comment -%}
+Section Adlign - Applique le mapping dynamiquement
+Utilise le metafield adlign.settings pour lire le mapping et remplacer le contenu
+{%- endcomment -%}
+
+{%- assign adlign_settings = product.metafields.adlign.settings -%}
+
+{%- if adlign_settings and adlign_settings.is_active -%}
+  <style>
+    .adlign-loading {
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+    }
+    .adlign-updated {
+      animation: adlignFadeIn 0.5s ease-in-out;
+    }
+    @keyframes adlignFadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .adlign-indicator {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #10B981;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      z-index: 9999;
+      opacity: 0;
+      transform: translateX(100px);
+      transition: all 0.3s ease;
+    }
+    .adlign-indicator.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    
+    /* Styles basiques pour la page produit */
+    .product {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+    }
+    .product__media img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+    .product__title {
+      font-size: 2em;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    .product__vendor {
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .product__price {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #2c5aa0;
+      margin-bottom: 20px;
+    }
+    .product__description {
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    .product-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .btn {
+      padding: 15px 30px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .btn--primary {
+      background: #2c5aa0;
+      color: white;
+    }
+    .btn--primary:hover {
+      background: #1e3d6f;
+    }
+    @media (max-width: 768px) {
+      .product {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Configuration Adlign depuis Liquid
+      window.AdlignConfig = {
+        settings: {{ adlign_settings | json }},
+        productId: {{ product.id | json }},
+        productHandle: {{ product.handle | json }},
+        shopDomain: {{ shop.permanent_domain | json }},
+        debug: {{ section.settings.debug | default: false }}
+      };
+
+      // Fonction principale d'application du mapping
+      function applyAdlignMapping() {
+        const config = window.AdlignConfig;
+        const settings = config.settings;
+        
+        if (!settings || !settings.mapping || !settings.content) {
+          if (config.debug) console.log('[Adlign] Pas de mapping à appliquer');
+          return;
+        }
+
+        console.log('[Adlign] Application du mapping...', settings);
+        
+        let appliedCount = 0;
+        
+        // Parcourir le mapping et appliquer les changements
+        Object.entries(settings.mapping).forEach(([elementType, selector]) => {
+          const contentKey = getContentKey(elementType);
+          const newContent = settings.content[contentKey];
+          
+          if (!newContent) {
+            if (config.debug) console.log(`[Adlign] Pas de contenu pour ${elementType}`);
+            return;
+          }
+
+          // Trouver et remplacer l'élément
+          const elements = findElements(selector);
+          elements.forEach(element => {
+            if (applyContentToElement(element, elementType, newContent)) {
+              appliedCount++;
+              element.classList.add('adlign-updated');
+              if (config.debug) console.log(`[Adlign] ✅ ${elementType} mis à jour:`, selector);
+            }
+          });
+        });
+
+        // Afficher l'indicateur de succès
+        if (appliedCount > 0) {
+          showSuccessIndicator(appliedCount);
+        }
+      }
+
+      // Fonction pour mapper les types d'éléments aux clés de contenu
+      function getContentKey(elementType) {
+        const mapping = {
+          'product_title': 'custom_title',
+          'title': 'custom_title',
+          'product_description': 'custom_description',
+          'description': 'custom_description',
+          'product_price': 'custom_price_text',
+          'price': 'custom_price_text',
+          'add_to_cart': 'custom_cta_text',
+          'cta': 'custom_cta_text',
+          'button': 'custom_cta_text',
+          'vendor': 'custom_vendor',
+          'product_vendor': 'custom_vendor'
+        };
+        return mapping[elementType] || `custom_${elementType}`;
+      }
+
+      // Fonction pour trouver les éléments avec fallbacks
+      function findElements(selector) {
+        let elements = [];
+        
+        // Essayer le sélecteur principal
+        elements = Array.from(document.querySelectorAll(selector));
+        
+        // Fallbacks si aucun élément trouvé
+        if (elements.length === 0) {
+          const fallbacks = getFallbackSelectors(selector);
+          for (const fallback of fallbacks) {
+            elements = Array.from(document.querySelectorAll(fallback));
+            if (elements.length > 0) break;
+          }
+        }
+        
+        return elements;
+      }
+
+      // Sélecteurs de fallback pour compatibilité
+      function getFallbackSelectors(originalSelector) {
+        return [
+          '[data-product-title]',
+          '.product-title',
+          '.product__title',
+          'h1',
+          '[data-product-description]',
+          '.product-description',
+          '.product__description',
+          '[data-product-price]',
+          '.product-price',
+          '.price',
+          '[data-add-to-cart]',
+          '.btn-product',
+          '.product-form__cart-submit',
+          'button[name="add"]',
+          '[data-product-vendor]',
+          '.product-vendor'
+        ];
+      }
+
+      // Fonction pour appliquer le contenu selon le type d'élément
+      function applyContentToElement(element, elementType, content) {
+        if (!element || !content) return false;
+
+        try {
+          // Ajouter classe de loading
+          element.classList.add('adlign-loading');
+          
+          setTimeout(() => {
+            switch (elementType) {
+              case 'product_title':
+              case 'title':
+                if (element.tagName === 'INPUT') {
+                  element.value = content;
+                } else {
+                  element.textContent = content;
+                }
+                break;
+                
+              case 'product_description':
+              case 'description':
+                element.innerHTML = content;
+                break;
+                
+              case 'product_price':
+              case 'price':
+                element.innerHTML = content;
+                break;
+                
+              case 'add_to_cart':
+              case 'cta':
+              case 'button':
+                if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
+                  element.value = content;
+                  if (element.innerHTML) element.innerHTML = content;
+                } else {
+                  element.textContent = content;
+                }
+                break;
+                
+              case 'vendor':
+              case 'product_vendor':
+                element.textContent = content;
+                break;
+                
+              default:
+                element.textContent = content;
+            }
+            
+            // Retirer classe de loading
+            element.classList.remove('adlign-loading');
+          }, 100);
+          
+          return true;
+        } catch (error) {
+          console.error('[Adlign] Erreur application contenu:', error);
+          element.classList.remove('adlign-loading');
+          return false;
+        }
+      }
+
+      // Afficher l'indicateur de succès
+      function showSuccessIndicator(count) {
+        const indicator = document.createElement('div');
+        indicator.className = 'adlign-indicator';
+        indicator.innerHTML = `✨ Adlign: ${count} éléments personnalisés`;
+        document.body.appendChild(indicator);
+        
+        setTimeout(() => indicator.classList.add('show'), 100);
+        setTimeout(() => {
+          indicator.classList.remove('show');
+          setTimeout(() => document.body.removeChild(indicator), 300);
+        }, 3000);
+      }
+
+      // Lancer l'application du mapping
+      applyAdlignMapping();
+    });
+  </script>
+
+  <!-- Contenu produit standard avec Adlign -->
+  <div class="product adlign-enhanced">
+    <div class="product__media">
+      {%- for media in product.media -%}
+        <img src="{{ media | image_url: width: 800 }}" alt="{{ media.alt | escape }}" loading="lazy">
+      {%- endfor -%}
+    </div>
+    
+    <div class="product__info">
+      <h1 class="product__title" data-product-title>{{ product.title }}</h1>
+      
+      <div class="product__vendor" data-product-vendor>{{ product.vendor }}</div>
+      
+      <div class="product__price" data-product-price>
+        {{ product.price | money }}
+      </div>
+      
+      <div class="product__description" data-product-description>
+        {{ product.description }}
+      </div>
+      
+      <form action="/cart/add" method="post" enctype="multipart/form-data" class="product-form">
+        {%- unless product.has_only_default_variant -%}
+          <select name="id" class="product-form__variants">
+            {%- for variant in product.variants -%}
+              <option value="{{ variant.id }}" {% if variant == product.selected_or_first_available_variant %}selected{% endif %}>
+                {{ variant.title }} - {{ variant.price | money }}
+              </option>
+            {%- endfor -%}
+          </select>
+        {%- else -%}
+          <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+        {%- endunless -%}
+        
+        <input type="number" name="quantity" value="1" min="1" class="quantity">
+        
+        <button type="submit" class="btn btn--primary" data-add-to-cart>
+          Ajouter au panier
+        </button>
+      </form>
+    </div>
+    
+    <!-- Section invisible qui contient la logique Adlign -->
+    <div class="adlign-section" style="display: none;">
+      <span data-adlign="active">{{ adlign_settings.campaign_name }}</span>
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Adlign Mapping",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "debug",
+      "label": "Mode Debug",
+      "default": false,
+      "info": "Affiche les logs Adlign dans la console"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Adlign Mapping"
+    }
+  ]
+}
+{% endschema %}

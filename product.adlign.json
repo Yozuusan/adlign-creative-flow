@@ -1,0 +1,13 @@
+{
+  "sections": {
+    "adlign_mapping": {
+      "type": "adlign-mapping-section",
+      "settings": {
+        "debug": false
+      }
+    }
+  },
+  "order": [
+    "adlign_mapping"
+  ]
+}

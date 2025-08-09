@@ -3376,9 +3376,26 @@ app.post('/api/saas/duplicate-product-page', express.json(), async (req, res) =>
 
     metaobjectFields.push(...basicFields);
 
-        // 6. Créer les métadonnées du produit au lieu des metaobjects
+        // 6. Créer le metafield settings avec mapping complet
+    const adlignSettings = {
+      landing_handle: landing_handle,
+      mapping_id: mapping_id,
+      campaign_name: landingData.campaign_name || "Campaign",
+      mapping: mappingData,
+      content: Object.fromEntries(metaobjectFields.map(field => [field.key, field.value])),
+      is_active: true,
+      created_at: new Date().toISOString()
+    };
+
+    // Créer les métadonnées du produit avec settings global
     const metadata = {
       metafields: [
+        {
+          namespace: "adlign",
+          key: "settings",
+          value: JSON.stringify(adlignSettings),
+          type: "json"
+        },
         {
           namespace: "adlign",
           key: "landing_handle",
@@ -3428,6 +3445,28 @@ app.post('/api/saas/duplicate-product-page', express.json(), async (req, res) =>
     // 8. Générer l'URL de la page dupliquée
     const duplicatedPageUrl = `https://${shop_domain}/products/${product.handle}?landing=${landing_handle}`;
 
+    // 8. Assigner le template Adlign au produit
+    try {
+      const updateProductResponse = await axios.put(
+        `https://${shop_domain}/admin/api/2024-07/products/${product_id}.json`,
+        {
+          product: {
+            id: product_id,
+            template_suffix: "adlign"
+          }
+        },
+        {
+          headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      console.log('✅ Template "adlign" assigné au produit');
+    } catch (templateError) {
+      console.log('⚠️ Impossible d\'assigner le template (normal si inexistant):', templateError.message);
+    }
+
     res.json({
       success: true,
       message: `Page produit dupliquée avec métadonnées pour "${landing_handle}"`,
@@ -3439,7 +3478,9 @@ app.post('/api/saas/duplicate-product-page', express.json(), async (req, res) =>
         metafields_created: createdMetafields.length,
         duplicated_page_url: duplicatedPageUrl,
         metafields: createdMetafields.map(mf => ({ key: mf.key, value: mf.value })),
-        mapping_elements: Object.keys(mappingData).length
+        mapping_elements: Object.keys(mappingData).length,
+        template_assigned: true,
+        adlign_settings: adlignSettings
       }
     });
 
@@ -3540,6 +3581,102 @@ app.post('/api/saas/product-metafields', express.json(), async (req, res) => {
 });
 
 // 13. Test des métadonnées
+// === ENDPOINT INSTALLATION FICHIERS THÈME ===
+app.post('/api/saas/install-theme-files', express.json(), async (req, res) => {
+  try {
+    const { shop_domain, theme_id } = req.body;
+
+    if (!shop_domain) {
+      return res.status(400).json({ success: false, error: 'shop_domain requis' });
+    }
+
+    // 1. Récupérer le token d'accès
+    const tokensPath = path.join(__dirname, 'shop_tokens.json');
+    let shopTokens = {};
+    try {
+      if (fs.existsSync(tokensPath)) {
+        shopTokens = JSON.parse(fs.readFileSync(tokensPath, 'utf8'));
+      }
+    } catch (error) {
+      console.error('Erreur lecture tokens:', error);
+    }
+    
+    const accessToken = shopTokens[shop_domain];
+    if (!accessToken) {
+      return res.status(401).json({ success: false, error: 'Token non trouvé pour cette boutique' });
+    }
+
+    // 2. Obtenir l'ID du thème principal si non fourni
+    let targetThemeId = theme_id;
+    if (!targetThemeId) {
+      const themesResponse = await axios.get(
+        `https://${shop_domain}/admin/api/2024-07/themes.json`,
+        { headers: { 'X-Shopify-Access-Token': accessToken } }
+      );
+      const mainTheme = themesResponse.data.themes.find(t => t.role === 'main');
+      targetThemeId = mainTheme?.id;
+    }
+
+    if (!targetThemeId) {
+      return res.status(404).json({ success: false, error: 'Thème principal non trouvé' });
+    }
+
+    // 3. Lire les fichiers à installer
+    
+    const sectionContent = fs.readFileSync(path.join(__dirname, 'adlign-mapping-section.liquid'), 'utf8');
+    const templateContent = fs.readFileSync(path.join(__dirname, 'product.adlign.json'), 'utf8');
+
+    // 4. Créer la section adlign-mapping-section.liquid
+    const sectionResponse = await axios.put(
+      `https://${shop_domain}/admin/api/2024-07/themes/${targetThemeId}/assets.json`,
+      {
+        asset: {
+          key: 'sections/adlign-mapping-section.liquid',
+          value: sectionContent
+        }
+      },
+      { headers: { 'X-Shopify-Access-Token': accessToken, 'Content-Type': 'application/json' } }
+    );
+
+    // 5. Créer le template product.adlign.json
+    const templateResponse = await axios.put(
+      `https://${shop_domain}/admin/api/2024-07/themes/${targetThemeId}/assets.json`,
+      {
+        asset: {
+          key: 'templates/product.adlign.json',
+          value: templateContent
+        }
+      },
+      { headers: { 'X-Shopify-Access-Token': accessToken, 'Content-Type': 'application/json' } }
+    );
+
+    console.log('✅ Fichiers thème Adlign installés avec succès');
+
+    res.json({
+      success: true,
+      message: 'Fichiers thème Adlign installés avec succès',
+      data: {
+        theme_id: targetThemeId,
+        files_installed: [
+          'sections/adlign-mapping-section.liquid',
+          'templates/product.adlign.json'
+        ],
+        section_size: sectionContent.length,
+        template_size: templateContent.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Erreur installation fichiers thème:', error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de l\'installation des fichiers thème',
+      details: error.response?.data || error.message
+    });
+  }
+});
+
+// === ENDPOINT TEST METAFIELDS ===
 app.get('/api/saas/test-metafields/:shop_domain', async (req, res) => {
   const { shop_domain } = req.params;
   
