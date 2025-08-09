@@ -83,8 +83,18 @@ serve(async (req) => {
       });
       const json = await res.json();
       if (!res.ok || json.errors) {
-        console.error("Shopify GraphQL error", json);
-        throw new Error(json.errors?.[0]?.message || "Shopify GraphQL error");
+        let errMsg = "Shopify GraphQL error";
+        try {
+          if (Array.isArray(json.errors)) {
+            errMsg = json.errors.map((e: any) => e?.message || JSON.stringify(e)).join("; ");
+          } else if (typeof json.errors === "string") {
+            errMsg = json.errors;
+          } else if (json.errors) {
+            errMsg = JSON.stringify(json.errors);
+          }
+        } catch (_) {}
+        console.error("Shopify GraphQL error", { status: res.status, body: json, message: errMsg });
+        throw new Error(errMsg);
       }
       return json.data;
     };
