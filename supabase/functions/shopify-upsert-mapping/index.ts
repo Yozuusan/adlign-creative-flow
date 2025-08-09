@@ -75,7 +75,7 @@ serve(async (req) => {
           id
           title
           handle
-          metafield(namespace: "adlign", key: "settings") {
+          metafield(namespace: "adlign_data", key: "settings") {
             id
             type
             value
@@ -118,7 +118,7 @@ serve(async (req) => {
         metafields: [
           {
             ownerId: product.id,
-            namespace: "adlign",
+            namespace: "adlign_data",
             key: "settings",
             type: "json",
             value: JSON.stringify(settings),
