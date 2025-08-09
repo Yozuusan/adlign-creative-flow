@@ -117,10 +117,10 @@ serve(async (req) => {
     let hasDefinition = false;
     try {
       const def = await graphql(
-        `query { metaobjectDefinitions(first: 1, type: "adlign_mapping"){ nodes { id name type } } }`
+        `query { metaobjectDefinitions(first: 20){ nodes { id name type } } }`
       );
       const nodes = def?.metaobjectDefinitions?.nodes ?? [];
-      hasDefinition = nodes.length > 0;
+      hasDefinition = nodes.some((n: any) => n?.type === "adlign_mapping");
     } catch (e) {
       console.warn("Failed to read metaobject definitions", e);
     }
@@ -190,9 +190,7 @@ const pageRes = await graphql(
     page: {
       title: `${product.title} • Adlign Landing`,
       handle: uniqueHandle,
-      bodyHtml: "",
       templateSuffix: "adlign",
-      published: true,
     },
   }
 );
