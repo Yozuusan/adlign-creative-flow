@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 
 const Index = () => {
   return (
-    <main className="bg-chatgpt min-h-screen">
+    <main className="bg-lovable-hero min-h-screen">
       <Helmet>
         <title>Adlign — AI‑Aligned Shopify Landing Variants</title>
         <meta name="description" content="Connect your Shopify store, generate aligned product‑page variants from your ad creatives, and deploy in one click." />
