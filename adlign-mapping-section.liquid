@@ -5,7 +5,7 @@ Utilise le metafield adlign_data.settings pour lire le mapping et remplacer le c
 
 {%- assign adlign_settings = product.metafields.adlign_data.settings -%}
 
-{%- if adlign_settings and adlign_settings.is_active -%}
+{%- comment -%} Toujours afficher le contenu produit, avec ou sans Adlign {%- endcomment -%}
   <style>
     .adlign-loading {
       opacity: 0.7;
@@ -98,6 +98,7 @@ Utilise le metafield adlign_data.settings pour lire le mapping et remplacer le c
     }
   </style>
 
+  {%- if adlign_settings and adlign_settings.is_active -%}
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Configuration Adlign depuis Liquid
@@ -288,6 +289,7 @@ Utilise le metafield adlign_data.settings pour lire le mapping et remplacer le c
       applyAdlignMapping();
     });
   </script>
+  {%- endif -%}
 
   <!-- Contenu produit standard avec Adlign -->
   <div class="product adlign-enhanced">
@@ -332,11 +334,12 @@ Utilise le metafield adlign_data.settings pour lire le mapping et remplacer le c
     </div>
     
     <!-- Section invisible qui contient la logique Adlign -->
+    {%- if adlign_settings and adlign_settings.is_active -%}
     <div class="adlign-section" style="display: none;">
       <span data-adlign="active">{{ adlign_settings.campaign_name }}</span>
     </div>
+    {%- endif -%}
   </div>
-{%- endif -%}
 
 {% schema %}
 {
